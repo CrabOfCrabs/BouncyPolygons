@@ -69,7 +69,7 @@ void Add_PointToObj(Vec2 p,Obj o){
 void DSline(double x1,double x2,double y ){ //Draws Simple line
 	double x,x2l;
 	if(x1<=x2){x=x1;x2l = x2;}else{x=x2;x2l = x1;}
-	do{mvprintw(y,x,"#");}while(x++<x2l);}
+	do{mvprintw(y/2,x,"#");}while(x++<x2l);}
 
 void drawtup(Tri t){
 	Vec2 *p1 = t.p1,*p2 = t.p2,*p3 = t.p3;
@@ -110,23 +110,23 @@ void move_Tri(Tri* tm,Vec2 aF){
 double border_Check(Vec2 screen ,Vec2 *p,Vec2 *f,Tri *tp,Vec2 cen){
 		if(p->y > screen.y){Vec2 po = {0,screen.y - p->y};	//workspace roof
 
-			move_Tri(tp,po);f->y*=-1;
-		Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};return ((U.x*V.y)-(U.y*V.x));
+				Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};	move_Tri(tp,po);f->y*=-1;
+return ((U.x*V.y)-(U.y*V.x));
 		}			
 		else if(p->y < 0){Vec2 po = {0,-p->y};			//workspace bottom
 
-			move_Tri(tp,po);f->y*=-1;
-		Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};return ((U.x*V.y)-(U.y*V.x));		
+					Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};move_Tri(tp,po);f->y*=-1;
+return ((U.x*V.y)-(U.y*V.x));		
 		}
 		if(p->x >  screen.x){Vec2 po = {screen.x - p->x,0};	//workspace left
 									
-			move_Tri(tp,po);f->x*=-1;
-		Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};return ((U.x*V.y)-(U.y*V.x));
+					Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};move_Tri(tp,po);f->x*=-1;
+return ((U.x*V.y)-(U.y*V.x));
 		}
 		else if(p->x < 0){Vec2 po = {-p->x,0};			//workspace right
 
-			move_Tri(tp,po);f->x*=-1;
-		Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};return ((U.x*V.y)-(U.y*V.x));
+					Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};move_Tri(tp,po);f->x*=-1;
+return ((U.x*V.y)-(U.y*V.x));
 		}
 		else{return 0;}
 		
@@ -152,15 +152,15 @@ void rotateTri(Tri *tp,Vec2 cen,double torque){
 Vec2 tricenp(Tri t){
 	Vec2 p = {(t.p1->x+t.p2->x+t.p3->x)/3,(t.p1->y+t.p2->y+t.p3->y)/3};
 	return p;}
-int main(){int ms = 20;
+int main(){int ms = 9;
 ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 	time_t start, now;struct timespec delay;delay.tv_sec = 0;delay.tv_nsec = ms * 999999L;time(&start);
 
 	initscr();
         clear();
-	Vec2 pt1 = {25,20},pt2 = {20,10},pt3 = {30,20};
+	Vec2 pt1 = {25,20},pt2 = {20,10},pt3 = {30,50};
 	Tri tp = {&pt1,&pt2,&pt3};
-	Vec2 force = {0.1,0};
+	Vec2 force = {0,0};
 	double torque = 0;
 	int gravacc = 0;
 	while(1){
