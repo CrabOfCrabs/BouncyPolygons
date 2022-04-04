@@ -22,50 +22,11 @@ typedef struct Triangle{
 
 }Tri;
 
-typedef struct Object{
-	Tri arrT[MAX_ARR]; //array of triangles points in triangles point to arrP
-	Vec2 *arrP; //a pointer to array with unsorted points
-	Vec2 Bounds[2];
-	Vec2 MassCen;
-	Vec2 Velocity;
-	double angularVelocity;
-	unsigned int lenB[2];
-}Obj;
-
 
 void swapp(Vec2 *p1,Vec2 *p2){Vec2 tmp = *p1;*p1 = *p2;*p2 = tmp;}
 double inpolx(Vec2 p1,Vec2 p2,double y){double x = p1.x + (p2.x - p1.x)*(y - p1.y)/(p2.y - p1.y);return x;}
 
-Obj mkObj(){
-	Obj oT;
-	oT.arrP = (Vec2*) malloc(1*sizeof(Vec2));
-	oT.lenB[0] = 0;
-	oT.lenB[1] = 0;
 
-	return oT;	
-}
-
-void Add_PointToObj(Vec2 p,Obj o){	
-	
-	o.lenB[0]+=1;
-	o.arrP = realloc(o.arrP ,o.lenB[0] * sizeof(Vec2));
-	o.arrP[o.lenB[0]-1] = p;
-
-	if(o.lenB[0] < 3){return;}
-	else{
-		int d1,d2;
-		int *distarr;
-		int lenght;
-		for(int i = 0;i<o.lenB[0];i++){
-			Vec2 tP = o.arrP[i];
-		//	(dist ==NULL || dist < sqrt(tP.x*tP.x + tP.y*tP.y))
-		}
-	
-	}
-
-	o.lenB[0] += 1;
-
-}
 void DSline(double x1,double x2,double y ){ //Draws Simple line
 	double x,x2l;
 	if(x1<=x2){x=x1;x2l = x2;}else{x=x2;x2l = x1;}
@@ -109,25 +70,26 @@ void move_Tri(Tri* tm,Vec2 aF){
 
 double border_Check(Vec2 screen ,Vec2 *p,Vec2 *f,Tri *tp,Vec2 cen){
 		if(p->y > screen.y){Vec2 po = {0,screen.y - p->y};	//workspace roof
+			Vec2 U = {f->x,f->y};
+			Vec2 V = {p->x - cen.x , p->y - cen.y};	
+			move_Tri(tp,po);f->y*=-1;
+			return ((U.x*V.y)-(U.y*V.x));}			
+		else if(p->y < 0){Vec2 po = {0,-p->y};	//workspace bottom
+			Vec2 U = {f->x,f->y};
+			Vec2 V = {p->x - cen.x , p->y - cen.y};
+			move_Tri(tp,po);f->y*=-1;
+			return ((U.x*V.y)-(U.y*V.x));}
 
-				Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};	move_Tri(tp,po);f->y*=-1;
-return ((U.x*V.y)-(U.y*V.x));
-		}			
-		else if(p->y < 0){Vec2 po = {0,-p->y};			//workspace bottom
-
-					Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};move_Tri(tp,po);f->y*=-1;
-return ((U.x*V.y)-(U.y*V.x));		
-		}
 		if(p->x >  screen.x){Vec2 po = {screen.x - p->x,0};	//workspace left
-									
-					Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};move_Tri(tp,po);f->x*=-1;
-return ((U.x*V.y)-(U.y*V.x));
-		}
-		else if(p->x < 0){Vec2 po = {-p->x,0};			//workspace right
-
-					Vec2 U = {f->x,f->y};Vec2 V = {p->x - cen.x , p->y - cen.y};move_Tri(tp,po);f->x*=-1;
-return ((U.x*V.y)-(U.y*V.x));
-		}
+			Vec2 U = {f->x,f->y};
+			Vec2 V = {p->x - cen.x , p->y - cen.y};
+			move_Tri(tp,po);f->x*=-1;
+			return ((U.x*V.y)-(U.y*V.x));}
+		else if(p->x < 0){Vec2 po = {-p->x,0};	//workspace right
+			Vec2 U = {f->x,f->y};
+			Vec2 V = {p->x - cen.x , p->y - cen.y};
+			move_Tri(tp,po);f->x*=-1;
+			return ((U.x*V.y)-(U.y*V.x));}
 		else{return 0;}
 		
 
@@ -165,7 +127,9 @@ ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 	double torque = 0;
 	int gravacc = 0;
 	double len = sqrt(10 * 10);
-	double I = (len*len)/12;
+	double I;
+	I = (len*len)/12;
+	//I = 1;
 	while(1){
 		ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 		Vec2 screen = {w.ws_col,w.ws_row};
