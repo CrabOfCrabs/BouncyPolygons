@@ -33,7 +33,13 @@ Vec2 addVec(Vec2 p,Vec2 offs){
 	v.y =p.y+ offs.y;
 	return v;
 }
-
+Vec2 minusVec(Vec2 p,Vec2 offs){
+	Vec2 v;
+	v.x =p.x- offs.x;
+	v.y =p.y- offs.y;
+	return v;
+}
+double magp(Vec2 p){double mg = sqrt((p.x*p.x) + (p.y*p.y));return mg;}
 double dot(Vec2 p1 , Vec2 p2){
 	double prod = p1.x * p2.x + p1.y * p2.y;
 	return prod;}
@@ -42,9 +48,6 @@ Vec2 cenTri(Tri t){
 	Vec2 v ={(t.p1.x+t.p2.x+t.p3.x)/3,(t.p1.y+t.p2.y+t.p3.y)/3};
 	return v;}
 
-double mmoiTri(Tri t,double mass){
-	double I = 1/6*mass*(dot(t.p1,t.p1)+dot(t.p2,t.p2)+dot(t.p3,t.p3)+dot(t.p1,t.p2)+dot(t.p2,t.p3)+dot(t.p1,t.p3));
-	return I;}
 void rotateVec(Vec2 *p,Vec2 cen,double torque){
         Vec2 pR = {((p->x-cen.x)*cos(torque)-(p->y-cen.y)*sin(torque))+cen.x , ((p->y-cen.y)*cos(torque)+(p->x-cen.x)*sin(torque))+cen.y};
 
@@ -78,8 +81,8 @@ void drawtdown(Tri t){
                 DSline(curx1,curx2,Y);
                 curx1 -= invslope1;curx2 -= invslope2;}}
 
-void scanln(Tri t){
-        Tri tr = t;
+void scanln(Tri tr){
+        
 
         if(tr.p2.y < tr.p1.y){ swapp(&tr.p2, &tr.p1); }if(tr.p3.y <tr.p1.y){ swapp(&tr.p3, &tr.p1); }if(tr.p3.y < tr.p2.y){ swapp(&tr.p3, &tr.p2); }
 
@@ -92,35 +95,85 @@ double cross(Vec2 p1,Vec2 p2){return ((p1.x*p2.y)-(p1.y*p2.x));}
 
 Vec2 mkvec(double x,double y){Vec2 v = {x,y};return v;}
 
-Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double w,double I,double mass,Tri *t){
+Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double I,double mass,Tri *t){
 		Vec2 r = {p.x-cen.x,p.y-cen.y};
 		double j;
 		Vec2 J={0,0};
                 if(p.y > screen.y){
 			moveTri(t,mkvec(0,screen.y-p.y));
 			Vec2 po = {0,-1};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po)));
+                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,-1*j};return J1;}
-		if(p.y < 0){  //workspace bottom
-			moveTri(t,mkvec(0,-p.y));
+		else if(p.y < 0){  //workspace bottomi
+			moveTri(t,mkvec(0,p.y*-1));
 			Vec2 po = {0,1};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po)));
+                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,1*j};return J1;}
-	/*	else if(p.x >  screen.x){
-
-			Vec2 po = {1,0};      //workspace roof
-                	j = (-2*(dot(v,po)+w*cross(r,po)))/(1/mass+(cross(r,po)*cross(r,po)));
-                        J.x = 1*j;return J;}
+		else if(p.x >  screen.x){
+			moveTri(t,mkvec(screen.x-p.x,0));
+			Vec2 po = {-1,0};      //workspace roof
+                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                        Vec2 J1 = {-1*j,0};return J1;}
 			
 		else if(p.x < 0){
+			moveTri(t,mkvec(p.x*-1,0));			
 			Vec2 po = {1,0};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po)));
-                        J.x = 1*j;return J;}*/
+                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                        Vec2 J1 = {1*j,0};return J1;}
 		return J;
 
 
 
 }
+
+double dist(Vec2 p1 , Vec2 p2){
+	return magp(minusVec(p1,p2));}
+double dens(Tri t,double mass){
+	double a = magp(minusVec(t.p1,t.p2)),b = magp(minusVec(t.p2,t.p3)),c = magp(minusVec(t.p1,t.p3));
+	double s = (a+b+c)/2;
+	double area = sqrt(s*(s-a)*(s-b)*(s-c));
+	return mass/area;}
+Vec2 mulv(Vec2 p,double u){Vec2 pr = {p.x*u,p.y*u};return pr;}
+double calcMomentOfInertia(Tri t,double density){
+    Vec2 p1 = t.p1, p2 = t.p2, p3 = t.p3;
+    double moi = 0;
+    double w = dist(p1, p2);
+    double w1 = abs(dot(minusVec(p1, p2), minusVec(p3, p2)) / w);
+    double w2 = abs(w - w1);
+    
+    double signedTriArea = cross(minusVec(p3, p1), minusVec(p2, p1)) / 2;
+    double h = 2 * abs(signedTriArea) / w;
+    
+    Vec2 p4 = addVec(p2, mulv(minusVec(p1, p2), w1 / w));
+    
+    Vec2 cm1 = {(p2.x + p3.x + p4.x) / 3,(p2.y + p3.y + p4.y) / 3};
+    Vec2 cm2 = {(p1.x + p3.x + p4.x) / 3,(p1.y + p3.y + p4.y) / 3};
+    
+    double I1 = density * w1 * h * ((h * h / 4) + (w1 * w1 / 12));
+    double I2 = density * w2 * h * ((h * h / 4) + (w2 * w2 / 12));
+    double m1 = 0.5 * w1 * h * density;
+    double m2 = 0.5 * w2 * h * density;
+
+    double I1cm = I1 - (m1 * pow(dist(cm1, p3), 2));
+    double I2cm = I2 - (m2 * pow(dist(cm2, p3), 2));
+    
+    double momentOfInertiaPart1 = I1cm + (m1 * pow(magp(cm1), 2));
+    double momentOfInertiaPart2 = I2cm + (m2 * pow(magp(cm2), 2));
+    if(cross(minusVec(p1, p3), minusVec(p4, p3)) > 0){
+      moi += momentOfInertiaPart1;
+    } else {
+      moi -= momentOfInertiaPart1;
+    }
+    if(cross(minusVec(p4, p3), minusVec(p2, p3)) > 0) {
+      moi += momentOfInertiaPart2;
+    } else {
+      moi -= momentOfInertiaPart2;
+    }
+  
+  return moi;
+}
+
+
 
 int main(){
 	int ms = 10;
@@ -129,15 +182,15 @@ int main(){
 	
 	initscr();
 	clear();
-	Vec2 p[3] = {{12,33},{6,39},{12,42}};Tri T_test = {p[0],p[1],p[2]};
+	Vec2 p[3] = {{12,33},{6,39},{22,42}};Tri T_test = {p[0],p[1],p[2]};
 
 
-	double mass = 0.1;
-	
-	double MMOI = mmoiTri(T_test,mass);
+	double mass = 100;
+	double density = dens(T_test,mass);
+	double MMOI = calcMomentOfInertia(T_test,density);
 
-	Vec2 v = {0,-10};
-	double angular_V = 0;
+	Vec2 v = {30,20};
+	double av = 0;
 
 
 
@@ -147,17 +200,24 @@ int main(){
 	
 	Vec2 cen = cenTri(T_test);
 
-		Vec2 j3 = border_Check(screen ,T_test.p1,v,cen,angular_V,MMOI,mass,&T_test);
-		Vec2 aj1 ={1/mass*j3.x,1/mass*j3.y};
+		Vec2 j3 = border_Check(screen ,T_test.p1,v,cen,MMOI,mass,&T_test);
+		Vec2 aj1 ={j3.x/mass,j3.y/mass};
 		v = addVec(v,aj1);
+		Vec2 r1 = {T_test.p1.x-cen.x,T_test.p1.y-cen.y};
+		av = av + cross(r1,j3)/MMOI;
 
-		Vec2 j2 =border_Check(screen ,T_test.p2,v,cen,angular_V,MMOI,mass,&T_test);
-		Vec2 aj2 ={1/mass*j2.x,1/mass*j2.y};
+		Vec2 j2 =border_Check(screen ,T_test.p2,v,cen,MMOI,mass,&T_test);
+		Vec2 aj2 ={j2.x/mass,j2.y/mass};
 		v = addVec(v,aj2);
+		Vec2 r2 = {T_test.p2.x-cen.x,T_test.p2.y-cen.y};
+		av = av + cross(r2,j2)/MMOI;
 
-		Vec2 j1 =border_Check(screen ,T_test.p3,v,cen,angular_V,MMOI,mass,&T_test);
-		Vec2 aj3 ={1/mass*j1.x,1/mass*j1.y};
+		Vec2 j1 =border_Check(screen ,T_test.p3,v,cen,MMOI,mass,&T_test);
+		Vec2 aj3 ={j1.x/mass,j1.y/mass};
 		v = addVec(v,aj3);
+		Vec2 r3 = {T_test.p3.x-cen.x,T_test.p3.y-cen.y};
+		av = av + cross(r3,j1)/MMOI;
+rotateTri(&T_test,cen,av/10);
 moveTri(&T_test,v);
 		nanosleep(&delay,NULL);
                 clear();
