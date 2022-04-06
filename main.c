@@ -138,11 +138,11 @@ double calcMomentOfInertia(Tri t,double density){
     Vec2 p1 = t.p1, p2 = t.p2, p3 = t.p3;
     double moi = 0;
     double w = dist(p1, p2);
-    double w1 = abs(dot(minusVec(p1, p2), minusVec(p3, p2)) / w);
-    double w2 = abs(w - w1);
+    double w1 = fabs(dot(minusVec(p1, p2), minusVec(p3, p2)) / w);
+    double w2 = fabs(w - w1);
     
     double signedTriArea = cross(minusVec(p3, p1), minusVec(p2, p1)) / 2;
-    double h = 2 * abs(signedTriArea) / w;
+    double h = 2 * fabs(signedTriArea) / w;
     
     Vec2 p4 = addVec(p2, mulv(minusVec(p1, p2), w1 / w));
     
@@ -189,7 +189,7 @@ int main(){
 	double density = dens(T_test,mass);
 	double MMOI = calcMomentOfInertia(T_test,density);
 
-	Vec2 v = {30,20};
+	Vec2 v = {40,80};
 	double av = 0;
 
 
@@ -217,7 +217,7 @@ int main(){
 		v = addVec(v,aj3);
 		Vec2 r3 = {T_test.p3.x-cen.x,T_test.p3.y-cen.y};
 		av = av + cross(r3,j1)/MMOI;
-rotateTri(&T_test,cen,av/10);
+rotateTri(&T_test,cen,av*2*M_PI/100);
 moveTri(&T_test,v);
 		nanosleep(&delay,NULL);
                 clear();
