@@ -95,29 +95,42 @@ double cross(Vec2 p1,Vec2 p2){return ((p1.x*p2.y)-(p1.y*p2.x));}
 
 Vec2 mkvec(double x,double y){Vec2 v = {x,y};return v;}
 
-Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double I,double mass,Tri *t){
+Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double I,double mass,Tri *t,Vec2 *vp){
 		Vec2 r = {p.x-cen.x,p.y-cen.y};
 		double j;
 		Vec2 J={0,0};
-		double e = 0.5;
-                if(p.y > screen.y){
-			moveTri(t,mkvec(0,(screen.y-p.y)*100));
-			Vec2 po = {0,-1};      //workspace roof
-                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+		double e = 1;
+		double Bounds_Friction =0.98;
+                if(p.y > screen.y*2){
+			moveTri(t,mkvec(0,(screen.y*2-p.y)*100));
+			vp->x *=Bounds_Friction;
+			vp->y *=Bounds_Friction;
+
+			Vec2 po = {0,-1};     
+			j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,-1*j};return J1;}
-		else if(p.y < 0){  //workspace bottomi
-			moveTri(t,mkvec(0,p.y*-100));
+		else if(p.y < 0){
+			moveTri(t,mkvec(0,p.y*-100));	
+			vp->x *=Bounds_Friction;
+			vp->y *=Bounds_Friction;
+
 			Vec2 po = {0,1};      //workspace roof
                 	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,1*j};return J1;}
 	if(p.x >  screen.x){
-			moveTri(t,mkvec((screen.x-p.x)*100,0));
+			moveTri(t,mkvec((screen.x-p.x)*100,0));	
+			vp->x *=Bounds_Friction;
+			vp->y *=Bounds_Friction;
+
 			Vec2 po = {-1,0};      //workspace roof
                 	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {-1*j,0};return J1;}
 			
 	else if(p.x < 0){
-			moveTri(t,mkvec(p.x*-100,0));			
+			moveTri(t,mkvec(p.x*-100,0));		
+			vp->x *=Bounds_Friction;
+			vp->y *=Bounds_Friction;
+		
 			Vec2 po = {1,0};      //workspace roof
                 	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {1*j,0};return J1;}
@@ -183,7 +196,7 @@ int main(){
 	
 	initscr();
 	clear();
-	Vec2 p[3] = {{12,50},{6,39},{50,42}};Tri T_test = {p[0],p[1],p[2]};
+	Vec2 p[3] = {{12,50},{6,79},{200,80}};Tri T_test = {p[0],p[1],p[2]};
 
 
 	double mass = 10;
@@ -200,7 +213,7 @@ int main(){
 	Vec2 cen = cenTri(T_test);
 		Vec2 r1 = {T_test.p1.x-cen.x,T_test.p1.y-cen.y};
 		Vec2 v1 = addVec(v,crossd(r1,av));
-		Vec2 j3 = border_Check(screen ,T_test.p1,v1,cen,MMOI,mass,&T_test);
+		Vec2 j3 = border_Check(screen ,T_test.p1,v1,cen,MMOI,mass,&T_test,&v);
 		Vec2 aj1 ={j3.x/mass,j3.y/mass};
 		v = addVec(v,aj1);
 		av = av + cross(r1,j3)/MMOI;
@@ -208,19 +221,19 @@ int main(){
 
 		Vec2 r2 = {T_test.p2.x-cen.x,T_test.p2.y-cen.y};
 		Vec2 v2 = addVec(v,crossd(r2,av));
-		Vec2 j2 =border_Check(screen ,T_test.p2,v2,cen,MMOI,mass,&T_test);
+		Vec2 j2 =border_Check(screen ,T_test.p2,v2,cen,MMOI,mass,&T_test,&v);
 		Vec2 aj2 ={j2.x/mass,j2.y/mass};
 		v = addVec(v,aj2);
 		av = av + cross(r2,j2)/MMOI;
 
 		Vec2 r3 = {T_test.p3.x-cen.x,T_test.p3.y-cen.y};
 		Vec2 v3 = addVec(v,crossd(r3,av));
-		Vec2 j1 =border_Check(screen ,T_test.p3,v3,cen,MMOI,mass,&T_test);
+		Vec2 j1 =border_Check(screen ,T_test.p3,v3,cen,MMOI,mass,&T_test,&v);
 		Vec2 aj3 ={j1.x/mass,j1.y/mass};
 		v = addVec(v,aj3);
 		av = av + cross(r3,j1)/MMOI;
 
-		v.y += 0.5;
+		v.y += 0.2;
 		moveVec(&T_test.p1,addVec(v,crossd(r1,av)));
 
 		moveVec(&T_test.p2,addVec(v,crossd(r2,av)));
