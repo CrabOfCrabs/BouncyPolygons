@@ -99,26 +99,27 @@ Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double I,double mass,Tri *
 		Vec2 r = {p.x-cen.x,p.y-cen.y};
 		double j;
 		Vec2 J={0,0};
+		double e = 0.5;
                 if(p.y > screen.y){
 			moveTri(t,mkvec(0,(screen.y-p.y)*100));
 			Vec2 po = {0,-1};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,-1*j};return J1;}
-		 if(p.y < 0){  //workspace bottomi
+		else if(p.y < 0){  //workspace bottomi
 			moveTri(t,mkvec(0,p.y*-100));
 			Vec2 po = {0,1};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,1*j};return J1;}
 	if(p.x >  screen.x){
 			moveTri(t,mkvec((screen.x-p.x)*100,0));
 			Vec2 po = {-1,0};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {-1*j,0};return J1;}
 			
-		if(p.x < 0){
+	else if(p.x < 0){
 			moveTri(t,mkvec(p.x*-100,0));			
 			Vec2 po = {1,0};      //workspace roof
-                	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {1*j,0};return J1;}
 		return J;
 
@@ -131,9 +132,10 @@ double dist(Vec2 p1 , Vec2 p2){
 double dens(Tri t,double mass){
 	double a = magp(minusVec(t.p1,t.p2)),b = magp(minusVec(t.p2,t.p3)),c = magp(minusVec(t.p1,t.p3));
 	double s = (a+b+c)/2;
-	double area = sqrt(s*(s-a)*(s-b)*(s-c));
+	double area = fabs(sqrt(s*(s-a)*(s-b)*(s-c)));
 	return mass/area;}
 Vec2 mulv(Vec2 p,double u){Vec2 pr = {p.x*u,p.y*u};return pr;}
+
 double calcMomentOfInertia(Tri t,double density){
     Vec2 p1 = t.p1, p2 = t.p2, p3 = t.p3;
     double moi = 0;
@@ -170,11 +172,10 @@ double calcMomentOfInertia(Tri t,double density){
       moi -= momentOfInertiaPart2;
     }
   
-  return moi;
+  return fabs(moi);
 }
 
-
-
+Vec2 crossd(Vec2 p ,double d){Vec2 r = {-1*d*p.y,d*p.x};return r;}
 int main(){
 	int ms = 10;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
@@ -182,43 +183,52 @@ int main(){
 	
 	initscr();
 	clear();
-	Vec2 p[3] = {{12,33},{6,39},{16,42}};Tri T_test = {p[0],p[1],p[2]};
+	Vec2 p[3] = {{12,50},{6,39},{50,42}};Tri T_test = {p[0],p[1],p[2]};
 
 
-	double mass = 0.1;
+	double mass = 10;
 	double density = dens(T_test,mass);
 	double MMOI = calcMomentOfInertia(T_test,density);
 
-	Vec2 v = {40,80};
+	Vec2 v = {20,40};
 	double av = 0;
-
 
 
 	while(1){
 		ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
                 Vec2 screen = {w.ws_col,w.ws_row};
-	
 	Vec2 cen = cenTri(T_test);
-
-		Vec2 j3 = border_Check(screen ,T_test.p1,v,cen,MMOI,mass,&T_test);
+		Vec2 r1 = {T_test.p1.x-cen.x,T_test.p1.y-cen.y};
+		Vec2 v1 = addVec(v,crossd(r1,av));
+		Vec2 j3 = border_Check(screen ,T_test.p1,v1,cen,MMOI,mass,&T_test);
 		Vec2 aj1 ={j3.x/mass,j3.y/mass};
 		v = addVec(v,aj1);
-		Vec2 r1 = {T_test.p1.x-cen.x,T_test.p1.y-cen.y};
 		av = av + cross(r1,j3)/MMOI;
 
-		Vec2 j2 =border_Check(screen ,T_test.p2,v,cen,MMOI,mass,&T_test);
+
+		Vec2 r2 = {T_test.p2.x-cen.x,T_test.p2.y-cen.y};
+		Vec2 v2 = addVec(v,crossd(r2,av));
+		Vec2 j2 =border_Check(screen ,T_test.p2,v2,cen,MMOI,mass,&T_test);
 		Vec2 aj2 ={j2.x/mass,j2.y/mass};
 		v = addVec(v,aj2);
-		Vec2 r2 = {T_test.p2.x-cen.x,T_test.p2.y-cen.y};
 		av = av + cross(r2,j2)/MMOI;
 
-		Vec2 j1 =border_Check(screen ,T_test.p3,v,cen,MMOI,mass,&T_test);
+		Vec2 r3 = {T_test.p3.x-cen.x,T_test.p3.y-cen.y};
+		Vec2 v3 = addVec(v,crossd(r3,av));
+		Vec2 j1 =border_Check(screen ,T_test.p3,v3,cen,MMOI,mass,&T_test);
 		Vec2 aj3 ={j1.x/mass,j1.y/mass};
 		v = addVec(v,aj3);
-		Vec2 r3 = {T_test.p3.x-cen.x,T_test.p3.y-cen.y};
 		av = av + cross(r3,j1)/MMOI;
-rotateTri(&T_test,cen,av*2*M_PI/100);
-moveTri(&T_test,v);
+
+		v.y += 0.5;
+		moveVec(&T_test.p1,addVec(v,crossd(r1,av)));
+
+		moveVec(&T_test.p2,addVec(v,crossd(r2,av)));
+
+		moveVec(&T_test.p3,addVec(v,crossd(r3,av)));
+		
+		//rotateTri(&T_test,cen,av/100);
+		//moveTri(&T_test,v);
 		nanosleep(&delay,NULL);
                 clear();
                 scanln(T_test);
