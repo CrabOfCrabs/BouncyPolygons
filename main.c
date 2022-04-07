@@ -100,23 +100,23 @@ Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double I,double mass,Tri *
 		double j;
 		Vec2 J={0,0};
                 if(p.y > screen.y){
-			moveTri(t,mkvec(0,screen.y-p.y));
+			moveTri(t,mkvec(0,(screen.y-p.y)*100));
 			Vec2 po = {0,-1};      //workspace roof
                 	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,-1*j};return J1;}
-		else if(p.y < 0){  //workspace bottomi
-			moveTri(t,mkvec(0,p.y*-1));
+		 if(p.y < 0){  //workspace bottomi
+			moveTri(t,mkvec(0,p.y*-100));
 			Vec2 po = {0,1};      //workspace roof
                 	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {0,1*j};return J1;}
-		else if(p.x >  screen.x){
-			moveTri(t,mkvec(screen.x-p.x,0));
+	if(p.x >  screen.x){
+			moveTri(t,mkvec((screen.x-p.x)*100,0));
 			Vec2 po = {-1,0};      //workspace roof
                 	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {-1*j,0};return J1;}
 			
-		else if(p.x < 0){
-			moveTri(t,mkvec(p.x*-1,0));			
+		if(p.x < 0){
+			moveTri(t,mkvec(p.x*-100,0));			
 			Vec2 po = {1,0};      //workspace roof
                 	j = (-2*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
                         Vec2 J1 = {1*j,0};return J1;}
@@ -182,10 +182,10 @@ int main(){
 	
 	initscr();
 	clear();
-	Vec2 p[3] = {{12,33},{6,39},{22,42}};Tri T_test = {p[0],p[1],p[2]};
+	Vec2 p[3] = {{12,33},{6,39},{16,42}};Tri T_test = {p[0],p[1],p[2]};
 
 
-	double mass = 100;
+	double mass = 0.1;
 	double density = dens(T_test,mass);
 	double MMOI = calcMomentOfInertia(T_test,density);
 
