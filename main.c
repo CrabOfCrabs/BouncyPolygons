@@ -6,7 +6,7 @@
 #include<sys/ioctl.h>
 #include<unistd.h>
 
-struct winsize w;
+struct winsize win;
 
 static double G_gravity = 9.81;
 
@@ -94,49 +94,54 @@ void scanln(Tri tr){
 double cross(Vec2 p1,Vec2 p2){return ((p1.x*p2.y)-(p1.y*p2.x));}
 
 Vec2 mkvec(double x,double y){Vec2 v = {x,y};return v;}
+Vec2 crossd(Vec2 p ,double d){Vec2 r = {-1*d*p.y,d*p.x};return r;}
 
-Vec2 border_Check(Vec2 screen ,Vec2 p,Vec2 v,Vec2 cen,double I,double mass,Tri *t,Vec2 *vp){
-		Vec2 r = {p.x-cen.x,p.y-cen.y};
+void borderCheck(Vec2 screen ,double I,double mass,double *w,Tri *t,Vec2 *vT){
+	Vec2 triT[3] = {t->p1,t->p2,t->p3}; 
+	Vec2 cen = cenTri(*t);
+	for(int i = 2;i>=0;i--){
+		Vec2 p = triT[i];
+		Vec2 r = {p.x-cen.x,p.y-cen.y};Vec2 v = addVec(*vT,crossd(r,*w));
+
 		double j;
-		Vec2 J={0,0};
 		double e = 1;
-		double Bounds_Friction =0.98;
+		double Bounds_Friction =1;
+		Vec2 J;
                 if(p.y > screen.y*2){
 			moveTri(t,mkvec(0,(screen.y*2-p.y)*100));
-			vp->x *=Bounds_Friction;
-			vp->y *=Bounds_Friction;
-
+			
 			Vec2 po = {0,-1};     
 			j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
-                        Vec2 J1 = {0,-1*j};return J1;}
+                        J.y = -1*j;}
 		else if(p.y < 0){
 			moveTri(t,mkvec(0,p.y*-100));	
-			vp->x *=Bounds_Friction;
-			vp->y *=Bounds_Friction;
-
-			Vec2 po = {0,1};      //workspace roof
-                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
-                        Vec2 J1 = {0,1*j};return J1;}
-	if(p.x >  screen.x){
+	
+			Vec2 po = {0,1};     
+			j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                        J.y = 1*j;}
+		else if(p.x >  screen.x){
 			moveTri(t,mkvec((screen.x-p.x)*100,0));	
-			vp->x *=Bounds_Friction;
-			vp->y *=Bounds_Friction;
-
-			Vec2 po = {-1,0};      //workspace roof
-                	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
-                        Vec2 J1 = {-1*j,0};return J1;}
 			
-	else if(p.x < 0){
+			Vec2 po = {-1,0};
+			j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
+                        J.x = -1*j;}
+			
+		else if(p.x < 0){
 			moveTri(t,mkvec(p.x*-100,0));		
-			vp->x *=Bounds_Friction;
-			vp->y *=Bounds_Friction;
-		
-			Vec2 po = {1,0};      //workspace roof
+				
+			Vec2 po = {1,0};      
                 	j = ((-1-e)*(dot(v,po)))/(1/mass+(cross(r,po)*cross(r,po))/I);
-                        Vec2 J1 = {1*j,0};return J1;}
-		return J;
+                        J.x = 1*j;}
+		else{continue;}
+		
 
+		
+		
+		*vT = addVec(*vT,mkvec(J.x/mass,J.y/mass));
+		*w = *w + cross(r,J)/I;
 
+	
+		}
 
 }
 
@@ -187,61 +192,45 @@ double calcMomentOfInertia(Tri t,double density){
   
   return fabs(moi);
 }
+void moveTri2(Tri *t,Vec2 v,double w){
+		Vec2 cen = cenTri(*t);
 
-Vec2 crossd(Vec2 p ,double d){Vec2 r = {-1*d*p.y,d*p.x};return r;}
+		Vec2 r1 = {t->p1.x-cen.x,t->p1.y-cen.y};
+		moveVec(&t->p1,addVec(v,crossd(r1,w)));
+
+		Vec2 r2 = {t->p2.x-cen.x,t->p2.y-cen.y};
+		moveVec(&t->p2,addVec(v,crossd(r2,w)));
+
+		Vec2 r3 = {t->p3.x-cen.x,t->p3.y-cen.y};
+		moveVec(&t->p3,addVec(v,crossd(r3,w)));}
+
 int main(){
 	int ms = 10;
-	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &win);
 	time_t start, now;struct timespec delay;delay.tv_sec = 0;delay.tv_nsec = ms * 999999L;time(&start);
 	
 	initscr();
 	clear();
-	Vec2 p[3] = {{12,50},{6,79},{200,80}};Tri T_test = {p[0],p[1],p[2]};
+	Vec2 p[3] = {{95,80},{40,90},{100,100}};Tri T_test = {p[0],p[1],p[2]};
 
 
-	double mass = 10;
+	double mass = 100;
 	double density = dens(T_test,mass);
-	double MMOI = calcMomentOfInertia(T_test,density);
+	double I = calcMomentOfInertia(T_test,density);
 
-	Vec2 v = {20,40};
-	double av = 0;
+	Vec2 v = {50,100};
+	double w = 0;
 
 
 	while(1){
-		ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-                Vec2 screen = {w.ws_col,w.ws_row};
-	Vec2 cen = cenTri(T_test);
-		Vec2 r1 = {T_test.p1.x-cen.x,T_test.p1.y-cen.y};
-		Vec2 v1 = addVec(v,crossd(r1,av));
-		Vec2 j3 = border_Check(screen ,T_test.p1,v1,cen,MMOI,mass,&T_test,&v);
-		Vec2 aj1 ={j3.x/mass,j3.y/mass};
-		v = addVec(v,aj1);
-		av = av + cross(r1,j3)/MMOI;
+		ioctl(STDOUT_FILENO, TIOCGWINSZ, &win);
+                Vec2 screen = {win.ws_col,win.ws_row};
 
+		borderCheck(screen,I,mass,&w,&T_test,&v);
 
-		Vec2 r2 = {T_test.p2.x-cen.x,T_test.p2.y-cen.y};
-		Vec2 v2 = addVec(v,crossd(r2,av));
-		Vec2 j2 =border_Check(screen ,T_test.p2,v2,cen,MMOI,mass,&T_test,&v);
-		Vec2 aj2 ={j2.x/mass,j2.y/mass};
-		v = addVec(v,aj2);
-		av = av + cross(r2,j2)/MMOI;
-
-		Vec2 r3 = {T_test.p3.x-cen.x,T_test.p3.y-cen.y};
-		Vec2 v3 = addVec(v,crossd(r3,av));
-		Vec2 j1 =border_Check(screen ,T_test.p3,v3,cen,MMOI,mass,&T_test,&v);
-		Vec2 aj3 ={j1.x/mass,j1.y/mass};
-		v = addVec(v,aj3);
-		av = av + cross(r3,j1)/MMOI;
-
-		v.y += 0.2;
-		moveVec(&T_test.p1,addVec(v,crossd(r1,av)));
-
-		moveVec(&T_test.p2,addVec(v,crossd(r2,av)));
-
-		moveVec(&T_test.p3,addVec(v,crossd(r3,av)));
-		
-		//rotateTri(&T_test,cen,av/100);
-		//moveTri(&T_test,v);
+		//v.y += 0.5;
+		moveTri2(&T_test,v,w);
+	
 		nanosleep(&delay,NULL);
                 clear();
                 scanln(T_test);
