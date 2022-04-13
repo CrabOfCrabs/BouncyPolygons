@@ -1,8 +1,6 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include<stdlib.h>
 #include<stdio.h>
-#include<curses.h>
+#include<stdbool.h>
+#include<stdlib.h>
 #include<math.h>
 #include<time.h>
 #include<sys/ioctl.h>
