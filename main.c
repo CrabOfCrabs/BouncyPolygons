@@ -10,8 +10,9 @@
 
 
 
-#include <SDL.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 typedef struct vector2d{
 	double x;
 	double y;}Vec2;
@@ -241,18 +242,43 @@ void draw(SDL_Renderer* Renderer,Obj o){
 	for(int i = 0;i<o.tArr_len;i++){
 		drawTri(Renderer,o.tArr[i]);}}
 
+void get_text_and_rect(SDL_Renderer *renderer, int x, int y, char *text,
+        TTF_Font *font, SDL_Texture **texture, SDL_Rect *rect) {
+    int text_width;
+    int text_height;
+    SDL_Surface *surface;
+    SDL_Color textColor = {255, 255, 255, 0};
+
+    surface = TTF_RenderText_Solid(font, text, textColor);
+    *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    text_width = surface->w;
+    text_height = surface->h;
+    SDL_FreeSurface(surface);
+    rect->x = x;
+    rect->y = y;
+    rect->w = text_width;
+    rect->h = text_height;
+}
 
 int main(){
 	if(SDL_Init(SDL_INIT_VIDEO) < 0){printf("SDL could not be initialized!\n""SDL_Error: %s\n", SDL_GetError());return 0;}
 	#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
 		if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0")){printf("SDL can not disable compositor bypass!\n");return 0;}
 	#endif
+char *font_path;SDL_Texture *texture1, *texture2;
 
+SDL_Rect rect1, rect2;
 	SDL_Window *window = SDL_CreateWindow("Basic C SDL project",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,SCREEN_WIDTH, SCREEN_HEIGHT,SDL_WINDOW_SHOWN);
 	if(!window){printf("Window could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
 	else{SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         	if(!renderer){printf("Renderer could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
         	else{bool quit = false;// Event loop exit flag
+    TTF_Init();
+    TTF_Font *font = TTF_OpenFont("/usr/share/fonts/TTF/Hack-Bold.ttf", 20);
+    if (font == NULL) {
+        fprintf(stderr, "error: font not found\n");
+        exit(EXIT_FAILURE);
+    }
 
 			int ms = 10;
 			time_t start, now, s_T, e_T;struct timespec delay;delay.tv_sec = 0;delay.tv_nsec = ms * 999999L;time(&start);
@@ -281,6 +307,19 @@ int main(){
 				SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 				SDL_RenderClear(renderer);
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+				char ymouse[1000];
+				char xmouse[1000];
+				int x1,y2;
+				SDL_GetMouseState(&x1,&y2);
+
+				sprintf(ymouse,"%d",y2);
+			       	sprintf(xmouse,"%d",x1);
+
+    get_text_and_rect(renderer, 0, rect1.y + rect1.h, xmouse, font, &texture2, &rect2);
+    get_text_and_rect(renderer, 0, 0, ymouse, font, &texture1, &rect1);
+    
+    SDL_RenderCopy(renderer, texture1, NULL, &rect1);
+    SDL_RenderCopy(renderer, texture2, NULL, &rect2);
 
 				borderCheck2(screen ,&oT,&cen);
 				gettimeofday(&t2, NULL);double seconds =(t2.tv_sec - t1.tv_sec);double dT =((seconds * 1000000) + t2.tv_usec) - (t1.tv_usec);
