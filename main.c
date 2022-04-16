@@ -27,8 +27,7 @@ typedef struct rigid_object{
 	Vec2 *vArr;
 	unsigned int vArr_len;
 	
-	Vec2 cen;	
-bool anim;	
+	Vec2 cen;		
 	double m,I;
 	
 	Vec2 v;
@@ -54,16 +53,12 @@ Vec2 mkvec(double x,double y){
 
 Obj mkObj(Vec2 *vArr,int vArrS,Tri *tArr,int tArrS,double mass,Vec2 v,double w){
 	Obj tObj;
-
 	
 	tObj.vArr = (Vec2*) malloc(vArrS * sizeof(Vec2));
 	tObj.vArr_len = vArrS;
+
 	for(int i = 0;i<vArrS;i++){		
-		tObj.vArr[i] = *(vArr+i);
-
-
-	}
-
+		tObj.vArr[i] = *(vArr+i);}
 
 	tObj.m = mass;
 	tObj.I = 0;
@@ -156,9 +151,8 @@ void moveObjV(Obj *o,Vec2 offs){
 void borderCheck2(Vec2 screen ,Obj* o,Vec2 *cen){
 	for(int i = 0;i<o->vArr_len;i++){
 		Vec2 p = o->vArr[i];	
-				double j;
+		double j;
 		double e = 1; //elasticity 1 = boing boing , 0 = BAM!! 
-
 		Vec2 J;
                 if(p.y > screen.y){
 			moveObjV(o,mkvec(0,screen.y-p.y));
@@ -197,10 +191,11 @@ void borderCheck2(Vec2 screen ,Obj* o,Vec2 *cen){
                 	j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
                         J.x = 1*j;}
 		else{continue;} //does it skip?
-Vec2 r = {p.x-cen->x,p.y-cen->y};
+		
+		Vec2 r = {p.x-cen->x,p.y-cen->y};
 
 		o->v = addVec(o->v,mkvec(J.x/o->m,J.y/o->m));
-		o->w = o->w + cross(r,J)/o->I;}}
+		o->w = o->w + cross(r,J)/o->I;break;}}
 
 double objInertia(Obj o){ //some Inertia bongle dongle doongle moong
 	double density = o.m/areaObj(o);
@@ -243,76 +238,73 @@ void drawTri(SDL_Renderer* Renderer,Tri t){
 
 /*void draw(SDL_Renderer* Renderer,Obj o){
 	for(int i = 0;i<o.tArr_len;i++){
-		drawTri(Renderer,o.tArr[i]);}}
+		drawTri(Renderer,o.tArr[i]);}}*/
 
-*/
 void draw2(SDL_Renderer* Renderer,Obj o){
 	int i;
-for(i = 0;i<o.vArr_len-1;i++){
+	for(i = 0;i<o.vArr_len-1;i++){
 		SDL_RenderDrawLine(Renderer, o.vArr[i].x, o.vArr[i].y,o.vArr[i+1].x,o.vArr[i+1].y);}
-SDL_RenderDrawLine(Renderer, o.vArr[0].x, o.vArr[0].y,o.vArr[o.vArr_len-1].x,o.vArr[o.vArr_len-1].y);
-
-}
+	SDL_RenderDrawLine(Renderer, o.vArr[0].x, o.vArr[0].y,o.vArr[o.vArr_len-1].x,o.vArr[o.vArr_len-1].y);}
 
 
-void get_text_and_rect(SDL_Renderer *renderer, int x, int y, char *text,
-        TTF_Font *font, SDL_Texture **texture, SDL_Rect *rect) {
-    int text_width;
-    int text_height;
-    SDL_Surface *surface;
-    SDL_Color textColor = {255, 255, 255, 0};
-
-    surface = TTF_RenderText_Solid(font, text, textColor);
-    *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    text_width = surface->w;
-    text_height = surface->h;
-    SDL_FreeSurface(surface);
-    rect->x = x;
-    rect->y = y;
-    rect->w = text_width;
-    rect->h = text_height;
-}
+void get_text_and_rect(SDL_Renderer *renderer, int x, int y, char *text,TTF_Font *font, SDL_Texture **texture, SDL_Rect *rect){
+	int text_width;
+	int text_height;
+	SDL_Surface *surface;
+	SDL_Color textColor = {255, 255, 255, 0};
+	surface = TTF_RenderText_Solid(font, text, textColor);
+	*texture = SDL_CreateTextureFromSurface(renderer, surface);
+	text_width = surface->w;
+	text_height = surface->h;
+	SDL_FreeSurface(surface);
+	rect->x = x;
+	rect->y = y;
+	rect->w = text_width;
+	rect->h = text_height;}
 
 int main(){
 	if(SDL_Init(SDL_INIT_VIDEO) < 0){printf("SDL could not be initialized!\n""SDL_Error: %s\n", SDL_GetError());return 0;}
 	#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
 		if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0")){printf("SDL can not disable compositor bypass!\n");return 0;}
 	#endif
-char *font_path;SDL_Texture *texture1, *texture2;
-
-SDL_Rect rect1, rect2;
+	char *font_path;SDL_Texture *texture1, *texture2;
+	SDL_Rect rect1, rect2;
 	SDL_Window *window = SDL_CreateWindow("Basic C SDL project",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,SCREEN_WIDTH, SCREEN_HEIGHT,SDL_WINDOW_SHOWN);
 	if(!window){printf("Window could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
 	else{SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         	if(!renderer){printf("Renderer could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
-        	else{bool quit = false;// Event loop exit flag
-    TTF_Init();
-    TTF_Font *font = TTF_OpenFont("/usr/share/fonts/TTF/Hack-Bold.ttf", 20);
-    if (font == NULL) {
-        fprintf(stderr, "error: font not found\n");
-        exit(EXIT_FAILURE);
-    }
-
+        	else{
+			bool quit = false;// Event loop exit flag
+   			TTF_Init();
+    			TTF_Font *font = TTF_OpenFont("/usr/share/fonts/TTF/Hack-Bold.ttf", 20);
+    			if (font == NULL) {
+        			fprintf(stderr, "error: font not found\n");
+        			exit(EXIT_FAILURE);}
 			int ms = 10;
 			time_t start, now, s_T, e_T;struct timespec delay;delay.tv_sec = 0;delay.tv_nsec = ms * 999999L;time(&start);
 
 			Vec2 p[4] = {{20,21},{22,45},{36,47},{70,33}};Tri t[2] = {{&p[0],&p[1],&p[2]},{&p[0],&p[2],&p[3]}};
+
 			double mass = 100;	
 			Vec2 v = {1,2};
 			double w = 0;
 			Obj oT[100];int oT_S =0;
-			oT[0] = mkObj(&p[0],4,&t[0],2,mass,v,w);oT[0].cen = cenObj(oT[0]);
-oT[0].anim = true;
+
+
+			oT[0] = mkObj(&p[0],4,&t[0],2,mass,v,w);
+			oT[0].cen = cenObj(oT[0]);
 			oT[0].I = objInertia(oT[0]);
 			oT_S++;
+
+
 			struct timeval t1,t2;
 			double elapsedTime;
 
 			Vec2 screen = {800,600};
 			Tri tt2[2];
+
+
 			bool createMode = false;
-
-
 			Vec2 pA[1000];
 			int pAS = 0;
 			
@@ -322,75 +314,68 @@ oT[0].anim = true;
 
 			while(!quit){
 				gettimeofday(&t1, NULL);nanosleep(&delay,NULL);
-
 				SDL_Event e;
-	int x1,y2;
-				SDL_GetMouseState(&x1,&y2);
 
+				int x1,y2;
+				SDL_GetMouseState(&x1,&y2);
 
 				while(SDL_PollEvent(&e)) {
 					if(e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)){
             					quit = true;}
-				
-				if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)){
-					if(createMode == false){
-								
-								createMode = true;
-								//oT_S+=1;
-						pA[pAS] = mkvec(x1,y2);pAS+=1;
+					if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)){
+						if(createMode == false){
+							createMode = true;
+							pA[pAS] = mkvec(x1,y2);pAS+=1;}
+						else if(createMode == true){
+							pA[pAS] = mkvec(x1,y2);pAS+=1;}}
+					if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){	
+						if(createMode == true){
+							createMode = false;	
+							oT_S+=1;
+							oT[oT_S-1] = mkObj(&pA[0],pAS,&tt2[0],0,mass,v,w);    
+							oT[oT_S-1].cen = cenObj(oT[oT_S-1]);
+							oT[oT_S-1].I = objInertia(oT[oT_S-1]);
+							memset(pA, 0, 1000);
+							pAS=0;}}}
 
-					
-															     }
-					else if(createMode == true){pA[pAS] = mkvec(x1,y2);pAS+=1;
-
-					//oT[oT_S].vArr_len+=1;oT[oT_S].vArr[oT[oT_S].vArr_len-1] = mkvec(x1,y2);
-					}
-				}
-
-				if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){	
-				if(createMode = true){createMode == false;	oT_S+=1;
-oT[oT_S-1] = mkObj(&pA[0],pAS,&tt2[0],0,mass,v,w);    
-oT[oT_S-1].anim = true;oT[oT_S-1].cen = cenObj(oT[oT_S-1]);oT[oT_S-1].I = objInertia(oT[oT_S-1]);memset(pA, 0, 1000);pAS=0;
-							}
-				}
-
-	
-				
-				}
-
-
-													SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+				SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 				SDL_RenderClear(renderer);
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+
 				char ymouse[1000];
 				char xmouse[1000];
-							sprintf(ymouse,"%d",y2);
+				sprintf(ymouse,"%d",y2);
 			       	sprintf(xmouse,"%d",x1);
 
-    get_text_and_rect(renderer, 0, rect1.y + rect1.h, xmouse, font, &texture2, &rect2);
-    get_text_and_rect(renderer, 0, 0, ymouse, font, &texture1, &rect1);
+   				get_text_and_rect(renderer, 0, rect1.y + rect1.h, xmouse, font, &texture2, &rect2);
+    				get_text_and_rect(renderer, 0, 0, ymouse, font, &texture1, &rect1);
     
-    SDL_RenderCopy(renderer, texture1, NULL, &rect1);
-    SDL_RenderCopy(renderer, texture2, NULL, &rect2);
-	if(createMode = true){
-pA[pAS] = mkvec(x1,y2);pAS+=1;
-for(int i = 0;i<pAS-1;i++){
-		SDL_RenderDrawLine(renderer, pA[i].x, pA[i].y,pA[i+1].x,pA[i+1].y);}
-SDL_RenderDrawLine(renderer, pA[0].x, pA[0].y,pA[pAS-1].x,pA[pAS-1].y);}
+    				SDL_RenderCopy(renderer, texture1, NULL, &rect1);
+    				SDL_RenderCopy(renderer, texture2, NULL, &rect2);
 
-gettimeofday(&t2, NULL);double seconds =(t2.tv_sec - t1.tv_sec);double dT =((seconds * 1000000) + t2.tv_usec) - (t1.tv_usec);
-				for(int i = 0;i<oT_S;i++){
-				borderCheck2(screen ,&oT[i],&oT[i].cen);
-				moveObj(&oT[i],dT,oT[i].cen);
-			oT[i].cen.x +=oT[i].v.x;oT[i].cen.y+=oT[i].v.y;
+				if(createMode == true){	
+					SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+					for(int i = 0;i<pAS-1;i++){
+						SDL_RenderDrawLine(renderer, pA[i].x, pA[i].y,pA[i+1].x,pA[i+1].y);}
+						SDL_RenderDrawLine(renderer, pA[0].x, pA[0].y,pA[pAS-1].x,pA[pAS-1].y);
 
-							draw2(renderer,oT[i]);
-				}
+						SDL_SetRenderDrawColor(renderer, 0, 255, 255, SDL_ALPHA_OPAQUE);
+						SDL_RenderDrawLine(renderer, x1, y2,pA[0].x,pA[0].y);
+						SDL_RenderDrawLine(renderer, x1, y2,pA[pAS-1].x,pA[pAS-1].y);
+
+						SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);}
+
+				gettimeofday(&t2, NULL);
+				double seconds =(t2.tv_sec - t1.tv_sec);
+				double dT =((seconds * 1000000) + t2.tv_usec) - (t1.tv_usec);
 				
-				if(createMode = true){
+				for(int i = 0;i<oT_S;i++){moveObj(&oT[i],dT,oT[i].cen);
+					oT[i].cen.x +=oT[i].v.x;
+					oT[i].cen.y+=oT[i].v.y;
+					borderCheck2(screen,&oT[i],&oT[i].cen);
+					draw2(renderer,oT[i]);}
 
-				pAS-=1;}
-				SDL_RenderPresent(renderer);}
+							SDL_RenderPresent(renderer);}
 				
 			SDL_DestroyRenderer(renderer);}
 		SDL_DestroyWindow(window);}        
