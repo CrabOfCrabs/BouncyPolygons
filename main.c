@@ -2,10 +2,6 @@
 #include<stdbool.h>
 #include<stdlib.h>
 #include<math.h>
-#include<time.h>
-#include<sys/ioctl.h>
-#include<sys/time.h>
-#include<unistd.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -49,6 +45,11 @@ typedef struct rigid_object{
 
 SDL_Renderer *renderer;SDL_Window *window;TTF_Font *font;SDL_Event e;
 
+char *font_path;
+	SDL_Texture *texture1, *texture2;
+	SDL_Rect rect1, rect2;
+	char ymouse[1000];
+	char xmouse[1000];
 
 
 Obj oT[OBJECT_LIMIT];int oT_S =0;
@@ -104,8 +105,8 @@ void SDL_setup();
 //small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
-	int ms = 10;	
-			
+	int ms = 0.1;	
+	double dT =0;	
 	//SDL_SetWindowResizable(window,true);
 	while(!quit){
 		SDL_Delay(ms);
@@ -116,15 +117,17 @@ int main(){
 		
 		clear_Renderer();
 
-		showMousePos(font);
+		//showMousePos(font); //eats ram
 		if(createMode == true){	
 			drawMode_Render();}
 					
-		double dT =0;
+		
 	
 		simulation_Step(dT);
 		SDL_RenderPresent(renderer);}
-				
+	SDL_DestroyTexture(texture1);
+    	SDL_DestroyTexture(texture2);
+    	TTF_Quit();
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);        
 	SDL_Quit();
@@ -367,12 +370,7 @@ void simulation_Step(double dT){
 		draw2(oT[i]);}}
 
 void showMousePos(TTF_Font *font){
-	char *font_path;
-	SDL_Texture *texture1, *texture2;
-	SDL_Rect rect1, rect2;
-	char ymouse[1000];
-	char xmouse[1000];
-	sprintf(ymouse,"%d",mousey);
+		sprintf(ymouse,"%d",mousey);
        	sprintf(xmouse,"%d",mousex);
 	get_text_and_rect(0, 0, ymouse, font, &texture1, &rect1);
 	get_text_and_rect(0, rect1.y + rect1.h, xmouse, font, &texture2, &rect2);	    
