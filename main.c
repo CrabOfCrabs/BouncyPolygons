@@ -7,10 +7,6 @@
 #include<sys/time.h>
 #include<unistd.h>
 
-
-
-
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
@@ -27,7 +23,9 @@ typedef struct triangle{
 typedef struct rigid_object{
 	Vec2 *vArr;
 	unsigned int vArr_len;
-	
+
+	Vec2 maxV,minV;
+
 	Vec2 cen;		
 	double m,I;
 	
@@ -39,32 +37,36 @@ typedef struct rigid_object{
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
-// swap addreses of vectors
-void swapp(Vec2 *p1,Vec2 *p2);
+
 
 // Define screen dimensions
 #define SCREEN_WIDTH    800
 #define SCREEN_HEIGHT   600
 
+#define VERTEX_LIMIT	1000
+#define OBJECT_LIMIT    100
+
+
 SDL_Renderer *renderer;SDL_Window *window;TTF_Font *font;SDL_Event e;
 
 
 
-Obj oT[100];int oT_S =0;
+Obj oT[OBJECT_LIMIT];int oT_S =0;
 
 int mousex=0,mousey=0;
 bool createMode = false;
-Vec2 pA[1000];
+Vec2 pA[VERTEX_LIMIT];
 int pAS = 0;
 int screenW= SCREEN_WIDTH,screenH = SCREEN_HEIGHT;
-int polyFocus_Index;
+int polyFocus_Index=0;
 
 double mass = 100;	
 Vec2 v = {1,2};
 double w = 0;
 bool quit = false;// Event loop exit flag
 
-
+// swap addreses of vectors
+void swapp(Vec2 *p1,Vec2 *p2);
 
 Vec2 mkvec(double x,double y);
 Obj mkObj(Vec2 *vArr,int vArrS,double mass,Vec2 v,double w);
@@ -94,38 +96,31 @@ void simulation_Step(double dT);
 void showMousePos(TTF_Font *font);
 
 void clear_Renderer();
-void eventLoop();
+void eventLoop(); //events like input
 
 void SDL_setup();
 
 
-
+//small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
-	int ms = 10;
-	time_t start, now, s_T, e_T;struct timespec delay;delay.tv_sec = 0;delay.tv_nsec = ms * 999999L;time(&start);
-		
-
-	struct timeval t1,t2;
-	double elapsedTime;
+	int ms = 10;	
 			
-	SDL_SetWindowResizable(window,true);
+	//SDL_SetWindowResizable(window,true);
 	while(!quit){
-
-		gettimeofday(&t1, NULL);nanosleep(&delay,NULL);
+		SDL_Delay(ms);
 		SDL_GetWindowSize(window,&screenW,&screenH);
 		SDL_GetMouseState(&mousex,&mousey);
 		
 		eventLoop();
 		
 		clear_Renderer();
+
 		showMousePos(font);
 		if(createMode == true){	
 			drawMode_Render();}
 					
-		gettimeofday(&t2, NULL);
-		double seconds =(t2.tv_sec - t1.tv_sec);
-		double dT =((seconds * 1000000) + t2.tv_usec) - (t1.tv_usec);
+		double dT =0;
 	
 		simulation_Step(dT);
 		SDL_RenderPresent(renderer);}
@@ -137,12 +132,9 @@ int main(){
 
 
 
-
-
-
-
-
-
+//
+//FUNCTIONS (BORING!!!)
+//
 
 void swapp(Vec2 *p1,Vec2 *p2){
 	Vec2 tmp = *p1;*p1 = *p2;*p2 = tmp;
@@ -393,7 +385,7 @@ void clear_Renderer(){
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);};
 
 void SDL_setup(){
-if(SDL_Init(SDL_INIT_VIDEO) < 0){printf("SDL could not be initialized!\n""SDL_Error: %s\n", SDL_GetError());exit(EXIT_FAILURE);}
+	if(SDL_Init(SDL_INIT_VIDEO) < 0){printf("SDL could not be initialized!\n""SDL_Error: %s\n", SDL_GetError());exit(EXIT_FAILURE);}
 	#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
 		if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0")){printf("SDL can not disable compositor bypass!\n");exit(EXIT_FAILURE);}
 	#endif
@@ -408,6 +400,7 @@ if(SDL_Init(SDL_INIT_VIDEO) < 0){printf("SDL could not be initialized!\n""SDL_Er
     			if (font == NULL) {
         			fprintf(stderr, "error: font not found\n");
         			exit(EXIT_FAILURE);}}}}
+
 void eventLoop(){
 	while(SDL_PollEvent(&e)){
 		if(e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)){
@@ -420,8 +413,8 @@ void eventLoop(){
 				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}}
 		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){	
 			if(createMode == true){
-				createMode = false;oT_S+=1;
-				oT[oT_S-1] = mkObj(&pA[0],pAS,mass,v,w);
-				oT[oT_S-1].cen = cenObj(oT[oT_S-1]);oT[oT_S-1].I = objInertia(oT[oT_S-1]);
-				memset(pA, 0, 1000);pAS=0;}}}}
+				createMode = false;				
+				oT[oT_S] = mkObj(&pA[0],pAS,mass,v,w);
+				oT[oT_S].cen = cenObj(oT[oT_S]);oT[oT_S].I = objInertia(oT[oT_S]);
+				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}}
 
