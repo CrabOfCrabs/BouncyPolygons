@@ -3,8 +3,8 @@
 #include<stdlib.h>
 #include<math.h>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL.h>
+
 
 typedef struct vector2d{
 	double x;
@@ -43,7 +43,7 @@ typedef struct rigid_object{
 #define OBJECT_LIMIT    100
 
 
-SDL_Renderer *renderer;SDL_Window *window;TTF_Font *font;SDL_Event e;
+SDL_Renderer *renderer;SDL_Window *window;SDL_Event e;
 bool quit = false;// Event loop exit flag
 
 
@@ -83,7 +83,6 @@ double objInertia(Obj o);
 void draw2(Obj o);
 
 
-void get_text_and_rect(int x, int y, char *text,TTF_Font *font, SDL_Texture **texture, SDL_Rect *rect);
 
 void drawMode_Render();
 void simulation_Step(double dT);
@@ -98,7 +97,7 @@ int main(){
 	SDL_setup();
 	int ms = 10;
 	double dT =0;
-	SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN);
+	//SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN);
 	while(!quit){
 		SDL_Delay(ms);
 		SDL_GetWindowSize(window,&screenW,&screenH);
