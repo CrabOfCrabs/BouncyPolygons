@@ -44,27 +44,20 @@ typedef struct rigid_object{
 
 
 SDL_Renderer *renderer;SDL_Window *window;TTF_Font *font;SDL_Event e;
-
-char *font_path;
-	SDL_Texture *texture1, *texture2;
-	SDL_Rect rect1, rect2;
-	char ymouse[1000];
-	char xmouse[1000];
+bool quit = false;// Event loop exit flag
 
 
 Obj oT[OBJECT_LIMIT];int oT_S =0;
+Vec2 pA[VERTEX_LIMIT];int pAS = 0;
 
 int mousex=0,mousey=0;
 bool createMode = false;
-Vec2 pA[VERTEX_LIMIT];
-int pAS = 0;
 int screenW= SCREEN_WIDTH,screenH = SCREEN_HEIGHT;
 int polyFocus_Index=0;
 
 double mass = 100;	
 Vec2 v = {1,2};
 double w = 0;
-bool quit = false;// Event loop exit flag
 
 // swap addreses of vectors
 void swapp(Vec2 *p1,Vec2 *p2);
@@ -105,7 +98,7 @@ void SDL_setup();
 //small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
-	int ms = 0.1;	
+	int ms = 10;	
 	double dT =0;	
 	//SDL_SetWindowResizable(window,true);
 	while(!quit){
@@ -125,13 +118,22 @@ int main(){
 	
 		simulation_Step(dT);
 		SDL_RenderPresent(renderer);}
-	SDL_DestroyTexture(texture1);
-    	SDL_DestroyTexture(texture2);
-    	TTF_Quit();
-	SDL_DestroyRenderer(renderer);
+		SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);        
 	SDL_Quit();
 	return 0;}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -334,21 +336,6 @@ void draw2(Obj o){
 	SDL_RenderDrawLine(renderer, o.vArr[0].x, o.vArr[0].y,o.vArr[o.vArr_len-1].x,o.vArr[o.vArr_len-1].y);}
 
 
-void get_text_and_rect(int x, int y, char *text,TTF_Font *font, SDL_Texture **texture, SDL_Rect *rect){
-	int text_width;
-	int text_height;
-	SDL_Surface *surface;
-	SDL_Color textColor = {255, 255, 255, 0};
-	surface = TTF_RenderText_Solid(font, text, textColor);
-	*texture = SDL_CreateTextureFromSurface(renderer, surface);
-	text_width = surface->w;
-	text_height = surface->h;
-	SDL_FreeSurface(surface);
-	rect->x = x;
-	rect->y = y;
-	rect->w = text_width;
-	rect->h = text_height;}
-
 void drawMode_Render(){
 	SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
 	for(int i = 0;i<pAS-1;i++){
@@ -369,13 +356,6 @@ void simulation_Step(double dT){
 		borderCheck2(&oT[i]);
 		draw2(oT[i]);}}
 
-void showMousePos(TTF_Font *font){
-		sprintf(ymouse,"%d",mousey);
-       	sprintf(xmouse,"%d",mousex);
-	get_text_and_rect(0, 0, ymouse, font, &texture1, &rect1);
-	get_text_and_rect(0, rect1.y + rect1.h, xmouse, font, &texture2, &rect2);	    
-	SDL_RenderCopy(renderer, texture1, NULL, &rect1);
-	SDL_RenderCopy(renderer, texture2, NULL, &rect2);}
 
 void clear_Renderer(){
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -393,11 +373,7 @@ void SDL_setup(){
 	else{renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         	if(!renderer){printf("Renderer could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
         	else{
-			TTF_Init();
-    			font = TTF_OpenFont("/usr/share/fonts/TTF/Hack-Bold.ttf", 20);
-    			if (font == NULL) {
-        			fprintf(stderr, "error: font not found\n");
-        			exit(EXIT_FAILURE);}}}}
+		}}}
 
 void eventLoop(){
 	while(SDL_PollEvent(&e)){
