@@ -114,7 +114,7 @@ int main(){
 		SDL_GetMouseState(&mousex,&mousey);
 		sprintf(ymouse,"%d",mousey);
 					sprintf(xmouse,"%d",mousex);
-					sprintf(velocy,"%lf",oT[oT_S-1].v.x);
+					sprintf(velocy,"%lf",oT[oT_S-1].I);
 		eventLoop();
 		SDL_Surface* surfaceMessage =
 		    TTF_RenderText_Solid(font, velocy, White);
@@ -353,7 +353,7 @@ void simulation_Step(double dT){
 	for(int i = 0;i<oT_S;i++){
 		moveObj(&oT[i],dT);
 		oT[i].cen.x +=oT[i].v.x;
-		oT[i].cen.y+=oT[i].v.y;
+		oT[i].cen.y +=oT[i].v.y;
 		borderCheck2(&oT[i]);
 		draw2(oT[i]);}}
 
