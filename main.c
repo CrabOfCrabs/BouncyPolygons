@@ -3,8 +3,8 @@
 #include<stdlib.h>
 #include<math.h>
 
-#include <SDL.h>
-
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 typedef struct vector2d{
 	double x;
@@ -43,7 +43,7 @@ typedef struct rigid_object{
 #define OBJECT_LIMIT    100
 
 
-SDL_Renderer *renderer;SDL_Window *window;SDL_Event e;
+SDL_Renderer *renderer;SDL_Window *window;TTF_Font *font;SDL_Event e;
 bool quit = false;// Event loop exit flag
 
 
@@ -54,10 +54,12 @@ int mousex=0,mousey=0;
 bool createMode = false;
 int screenW= SCREEN_WIDTH,screenH = SCREEN_HEIGHT;
 int polyFocus_Index=0;
-int arrS = 0;
+
 double mass = 100;
 Vec2 v = {1,2};
 double w = 0;
+
+SDL_Color White = {255, 255, 255};
 
 // swap addreses of vectors
 void swapp(Vec2 *p1,Vec2 *p2);
@@ -83,6 +85,7 @@ double objInertia(Obj o);
 void draw2(Obj o);
 
 
+void get_text_and_rect(int x, int y, char *text,TTF_Font *font, SDL_Texture **texture, SDL_Rect *rect);
 
 void drawMode_Render();
 void simulation_Step(double dT);
@@ -91,22 +94,37 @@ void eventLoop(); //events like input
 
 void SDL_setup();
 
-
 //small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
+
+
 	int ms = 10;
 	double dT =0;
-	//SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN);
-	while(!quit){
+	//SDL_SetWindowResizable(window,true);
+	while(!quit){char ymouse[1000];
+					char xmouse[1000];
+					char velocy[1000];SDL_Rect Message_rect; //create a rect
+					Message_rect.x = 0;  //controls the rect's x coordinate
+					Message_rect.y = 0; // controls the rect's y coordinte
+					Message_rect.w = 100; // controls the width of the rect
+					Message_rect.h = 100; // controls the height of the rect
 		SDL_Delay(ms);
 		SDL_GetWindowSize(window,&screenW,&screenH);
 		SDL_GetMouseState(&mousex,&mousey);
-
+		sprintf(ymouse,"%d",mousey);
+					sprintf(xmouse,"%d",mousex);
+					sprintf(velocy,"%lf",oT[oT_S-1].v.x);
 		eventLoop();
+		SDL_Surface* surfaceMessage =
+		    TTF_RenderText_Solid(font, velocy, White);
+
+		// now you can convert it into a texture
+		SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+
 
 		clear_Renderer();
-
+SDL_RenderCopy(renderer, Message, NULL, &Message_rect);
 		//showMousePos(font); //eats ram
 		if(createMode == true){
 			drawMode_Render();}
@@ -119,20 +137,6 @@ int main(){
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 //
 //FUNCTIONS (BORING!!!)
@@ -149,10 +153,11 @@ Vec2 mkvec(double x,double y){
 Obj mkObj(Vec2 *vArr,int vArrS,double mass,Vec2 v,double w){
 	Obj tObj;
 
-	tObj.vArr = &pA[pAS-vArrS];
+	tObj.vArr = (Vec2*) malloc(vArrS * sizeof(Vec2));
 	tObj.vArr_len = vArrS;
 
-
+	for(int i = 0;i<vArrS;i++){
+		tObj.vArr[i] = *(vArr+i);}
 
 	tObj.m = mass;
 	tObj.I = 0;
@@ -368,7 +373,11 @@ void SDL_setup(){
 	if(!window){printf("Window could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
 	else{renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         	if(!renderer){printf("Renderer could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
-        	else{
+        	else{TTF_Init();
+						font = TTF_OpenFont("Font/Hack-Bold.ttf", 20);
+    if (font == NULL) {
+        fprintf(stderr, "error: font not found\n");
+        exit(EXIT_FAILURE);}
 		}}}
 
 void eventLoop(){
@@ -378,12 +387,12 @@ void eventLoop(){
 		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)){
 			if(createMode == false){
 				createMode = true;
-				pA[pAS] = mkvec(mousex,mousey);pAS+=1;arrS+=1;}
+				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}
 			else if(createMode == true){
-				pA[pAS] = mkvec(mousex,mousey);pAS+=1;arrS+=1;}}
+				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}}
 		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){
 			if(createMode == true){
 				createMode = false;
-				oT[oT_S] = mkObj(&pA[0],arrS,mass,v,w);
+				oT[oT_S] = mkObj(&pA[0],pAS,mass,v,w);
 				oT[oT_S].cen = cenObj(oT[oT_S]);oT[oT_S].I = objInertia(oT[oT_S]);
-				arrS=0;oT_S+=1;}}}}
+				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}}
