@@ -98,7 +98,7 @@ int main(){
 	SDL_setup();
 	int ms = 10;
 	double dT =0;
-	//SDL_SetWindowResizable(window,true);
+	SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN);
 	while(!quit){
 		SDL_Delay(ms);
 		SDL_GetWindowSize(window,&screenW,&screenH);
