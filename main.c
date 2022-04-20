@@ -22,9 +22,9 @@ typedef struct rigid_object{
 
 	Vec2 maxV,minV;
 
-	Vec2 cen;		
+	Vec2 cen;
 	double m,I;
-	
+
 	Vec2 v;
 	double w;
 }Obj;
@@ -54,8 +54,8 @@ int mousex=0,mousey=0;
 bool createMode = false;
 int screenW= SCREEN_WIDTH,screenH = SCREEN_HEIGHT;
 int polyFocus_Index=0;
-
-double mass = 100;	
+int arrS = 0;
+double mass = 100;
 Vec2 v = {1,2};
 double w = 0;
 
@@ -87,8 +87,6 @@ void get_text_and_rect(int x, int y, char *text,TTF_Font *font, SDL_Texture **te
 
 void drawMode_Render();
 void simulation_Step(double dT);
-void showMousePos(TTF_Font *font);
-
 void clear_Renderer();
 void eventLoop(); //events like input
 
@@ -98,28 +96,28 @@ void SDL_setup();
 //small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
-	int ms = 10;	
-	double dT =0;	
+	int ms = 10;
+	double dT =0;
 	//SDL_SetWindowResizable(window,true);
 	while(!quit){
 		SDL_Delay(ms);
 		SDL_GetWindowSize(window,&screenW,&screenH);
 		SDL_GetMouseState(&mousex,&mousey);
-		
+
 		eventLoop();
-		
+
 		clear_Renderer();
 
 		//showMousePos(font); //eats ram
-		if(createMode == true){	
+		if(createMode == true){
 			drawMode_Render();}
-					
-		
-	
+
+
+
 		simulation_Step(dT);
 		SDL_RenderPresent(renderer);}
 		SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);        
+	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;}
 
@@ -151,12 +149,11 @@ Vec2 mkvec(double x,double y){
 
 Obj mkObj(Vec2 *vArr,int vArrS,double mass,Vec2 v,double w){
 	Obj tObj;
-	
-	tObj.vArr = (Vec2*) malloc(vArrS * sizeof(Vec2));
+
+	tObj.vArr = &pA[pAS-vArrS];
 	tObj.vArr_len = vArrS;
 
-	for(int i = 0;i<vArrS;i++){		
-		tObj.vArr[i] = *(vArr+i);}
+
 
 	tObj.m = mass;
 	tObj.I = 0;
@@ -168,27 +165,27 @@ Obj mkObj(Vec2 *vArr,int vArrS,double mass,Vec2 v,double w){
 
 double magp(Vec2 p){
 	double mg = sqrt((p.x*p.x) + (p.y*p.y));
-	return mg;} 
+	return mg;}
 
 double dot(Vec2 p1 , Vec2 p2){
 	double prod = p1.x * p2.x + p1.y * p2.y;
 	return prod;}
 
-Vec2 addVec(Vec2 p,Vec2 offs){ 
+Vec2 addVec(Vec2 p,Vec2 offs){
 	Vec2 v;
 	v.x =p.x+ offs.x;
 	v.y =p.y+ offs.y;
 	return v;}
 
-Vec2 minusVec(Vec2 p,Vec2 offs){ 
+Vec2 minusVec(Vec2 p,Vec2 offs){
 	Vec2 v;
 	v.x =p.x- offs.x;
 	v.y =p.y- offs.y;
 	return v;}
 
 Vec2 crossd(Vec2 p ,double d){
-	double s = sin(d); double c = cos(d); 
-	Vec2 r = { c*p.x - s*p.y, s*p.x + c*p.y }; 
+	double s = sin(d); double c = cos(d);
+	Vec2 r = { c*p.x - s*p.y, s*p.x + c*p.y };
 	return r;}
 
 double cross(Vec2 p1,Vec2 p2){
@@ -206,9 +203,9 @@ double inpolx(Vec2 p1,Vec2 p2,double y){
 	return x;}
 
 double areaObj(Obj o){
-	double area = 0;	
+	double area = 0;
 	for(int i = 1;i < o.vArr_len-1;i++){
-		Vec2 v1 = minusVec(o.vArr[i+1],o.vArr[0]);	
+		Vec2 v1 = minusVec(o.vArr[i+1],o.vArr[0]);
 		Vec2 v2 = minusVec(o.vArr[i],o.vArr[0]);
 		area += cross(v1,v2)/2;}
 	return fabs(area);}
@@ -237,7 +234,7 @@ void moveObj(Obj *o,double dT){
 		Vec2 r = {o->vArr[i].x-o->cen.x,o->vArr[i].y-o->cen.y};
 		o->vArr[i] = addVec(v,crossd(r,o->w));}
 	return;}
-Vec2 crossd2(Vec2 p ,double d){ 
+Vec2 crossd2(Vec2 p ,double d){
 	Vec2 r = {-1*d*p.y,d*p.x};
 	return r;}
 
@@ -247,11 +244,11 @@ void moveObjV(Obj *o,Vec2 offs){
 	return;}
 
 void borderCheck2(Obj* o){
-	
+
 	for(int i = 0;i<o->vArr_len;i++){
-		Vec2 p = o->vArr[i];	
+		Vec2 p = o->vArr[i];
 		double j;
-		double e = 1; //elasticity 1 = boing boing , 0 = BAM!! 
+		double e = 1; //elasticity 1 = boing boing , 0 = BAM!!
 		Vec2 J;
                 if(p.y > screenH){
 			moveObjV(o,mkvec(0,screenH-p.y));
@@ -262,13 +259,13 @@ void borderCheck2(Obj* o){
 			Vec2 po = {0,-1}; //wall normal
 			j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I); // <- impulse on wall calculation
                         J.y = -1*j;} //mult by surface normal
-		else if(p.y < 0){ 
+		else if(p.y < 0){
 			moveObjV(o,mkvec(0,p.y*-1));
 			o->cen = addVec(o->cen,mkvec(0,p.y*-1));
 			Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
 
 			Vec2 v = addVec(o->v,crossd2(r,o->w));
-			Vec2 po = {0,1};     
+			Vec2 po = {0,1};
 			j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
                         J.y = 1*j;}
 		else if(p.x >  screenW){
@@ -279,18 +276,18 @@ void borderCheck2(Obj* o){
 			Vec2 v = addVec(o->v,crossd2(r,o->w));
 			Vec2 po = {-1,0};
 			j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
-                        J.x = -1*j;}	
+                        J.x = -1*j;}
 		else if(p.x < 0){
 			moveObjV(o,mkvec(p.x*-1,0));
 			o->cen = addVec(o->cen,mkvec(p.x*-1,0));
 			Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
 
 			Vec2 v = addVec(o->v,crossd2(r,o->w));
-			Vec2 po = {1,0};      
+			Vec2 po = {1,0};
                 	j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
                         J.x = 1*j;}
 		else{continue;} //does it skip?
-		
+
 		Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
 
 		o->v = addVec(o->v,mkvec(J.x/o->m,J.y/o->m));
@@ -321,7 +318,7 @@ double objInertia(Obj o){ //some Inertia bongle dongle doongle moong
 			moi += momentOfInertiaPart1;}
 		else{moi -= momentOfInertiaPart1;}
 		if(cross(minusVec(p4, p3), minusVec(p2, p3)) > 0){
-			moi += momentOfInertiaPart2;} 
+			moi += momentOfInertiaPart2;}
 		else{moi -= momentOfInertiaPart2;}}
 	return fabs(moi);}
 
@@ -367,7 +364,7 @@ void SDL_setup(){
 	#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
 		if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0")){printf("SDL can not disable compositor bypass!\n");exit(EXIT_FAILURE);}
 	#endif
-	
+
 	window = SDL_CreateWindow("Basic C SDL project",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,SCREEN_WIDTH, SCREEN_HEIGHT,SDL_WINDOW_SHOWN);
 	if(!window){printf("Window could not be created!\n""SDL_Error: %s\n", SDL_GetError());}
 	else{renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -382,13 +379,12 @@ void eventLoop(){
 		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)){
 			if(createMode == false){
 				createMode = true;
-				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}
+				pA[pAS] = mkvec(mousex,mousey);pAS+=1;arrS+=1;}
 			else if(createMode == true){
-				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}}
-		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){	
+				pA[pAS] = mkvec(mousex,mousey);pAS+=1;arrS+=1;}}
+		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){
 			if(createMode == true){
-				createMode = false;				
-				oT[oT_S] = mkObj(&pA[0],pAS,mass,v,w);
+				createMode = false;
+				oT[oT_S] = mkObj(&pA[0],arrS,mass,v,w);
 				oT[oT_S].cen = cenObj(oT[oT_S]);oT[oT_S].I = objInertia(oT[oT_S]);
-				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}}
-
+				arrS=0;oT_S+=1;}}}}
