@@ -114,7 +114,7 @@ int main(){
 		SDL_GetMouseState(&mousex,&mousey);
 		sprintf(ymouse,"%d",mousey);
 					sprintf(xmouse,"%d",mousex);
-					sprintf(velocy,"%lf",oT[oT_S-1].I);
+					sprintf(velocy,"%d",oT[oT_S-1].vArr_len);
 		eventLoop();
 		SDL_Surface* surfaceMessage =
 		    TTF_RenderText_Solid(font, velocy, White);
@@ -124,6 +124,7 @@ int main(){
 
 
 		clear_Renderer();
+
 SDL_RenderCopy(renderer, Message, NULL, &Message_rect);
 		//showMousePos(font); //eats ram
 		if(createMode == true){
@@ -251,9 +252,9 @@ void borderCheck2(Obj* o){
 
 	for(int i = 0;i<o->vArr_len;i++){
 		Vec2 p = o->vArr[i];
-		double j;
+		double j=0;
 		double e = 1; //elasticity 1 = boing boing , 0 = BAM!!
-		Vec2 J;
+		Vec2 J ={0,0};
                 if(p.y > screenH){
 			moveObjV(o,mkvec(0,screenH-p.y));
 			o->cen = addVec(o->cen,mkvec(0,screenH-p.y));
