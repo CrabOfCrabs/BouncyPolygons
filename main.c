@@ -93,7 +93,8 @@ void clear_Renderer();
 void eventLoop(); //events like input
 
 void SDL_setup();
-
+bool collisionObj(Obj *oMain,Obj *oSec);
+bool PolygonCollision(Obj polygonA, Obj polygonB);
 //small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
@@ -355,6 +356,13 @@ void simulation_Step(double dT){
 		moveObj(&oT[i],dT);
 		oT[i].cen.x +=oT[i].v.x;
 		oT[i].cen.y +=oT[i].v.y;
+		for(int j = 0;j<oT_S;j++){
+			if(j == i){continue;}
+			if(PolygonCollision(oT[i],oT[j])==true){SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+					break;
+
+			}
+		}
 		borderCheck2(&oT[i]);
 		draw2(oT[i]);}}
 
@@ -397,3 +405,165 @@ void eventLoop(){
 				oT[oT_S] = mkObj(&pA[0],pAS,mass,v,w);
 				oT[oT_S].cen = cenObj(oT[oT_S]);oT[oT_S].I = objInertia(oT[oT_S]);
 				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}}
+
+double lineSlope(Vec2 a,Vec2 b){
+
+					if(a.x-b.x == 0.0)
+						return NAN;
+					else
+						return (a.y-b.y)/(a.x-b.x);}
+
+Vec2 intersectionPoint(Vec2 a1,Vec2 a2,Vec2 b1,Vec2 b2){
+					Vec2 c;
+
+					double slopeA = lineSlope(a1,a2), slopeB = lineSlope(b1,b2);
+
+					if(slopeA==slopeB){
+						c.x = NAN;
+						c.y = NAN;
+					}
+					else if(isnan(slopeA) && !isnan(slopeB)){
+						c.x = a1.x;
+						c.y = (a1.x-b1.x)*slopeB + b1.y;
+					}
+					else if(isnan(slopeB) && !isnan(slopeA)){
+						c.x = b1.x;
+						c.y = (b1.x-a1.x)*slopeA + a1.y;
+					}
+					else{
+						c.x = (slopeA*a1.x - slopeB*b1.x + b1.y - a1.y)/(slopeA - slopeB);
+						c.y = slopeB*(c.x - b1.x) + b1.y;
+					}
+
+					return c;
+				}
+
+
+
+				Vec2 ProjectPolygon(Vec2 axis, Obj polygon ){
+				    // To project a point on an axis use the dot product
+						Vec2 maxmin = {0,0};
+						double dotProduct = dot(polygon.vArr[0],axis);
+				    maxmin.y = dotProduct;
+				    maxmin.x = dotProduct;
+
+				    for (int i = 0; i < polygon.vArr_len; i++) {
+				        dotProduct = dot(axis,polygon.vArr[i]);
+				        if (dotProduct < maxmin.y) {
+				            maxmin.y = dotProduct;
+				        } else {
+				            if (dotProduct > maxmin.x) {
+				                maxmin.x = dotProduct;
+				            }
+				        }
+				    }
+						return maxmin;
+				}
+
+				double IntervalDistance(double minA, double maxA, double minB, double maxB) {
+				    if (minA < minB) {
+				        return minB - maxA;
+				    } else {
+				        return minA - maxB;
+				    }
+				}
+Vec2 Normalize(Vec2 v){
+	Vec2 normal = {v.x/magp(v),v.y/magp(v)};
+	return normal;
+}
+
+				bool PolygonCollision(Obj polygonA, Obj polygonB){
+				    int edgeCountA = polygonA.vArr_len;
+				    int edgeCountB = polygonB.vArr_len;
+				    double minIntervalDistance = 1000000000000000000;
+				    Vec2 edge = {0,0};
+						bool result = true;
+				    // Loop through all the edges of both polygons
+				    for (int edgeIndex = 0; edgeIndex < (edgeCountA + edgeCountB); edgeIndex++) {
+							if(edgeIndex = (edgeCountA + edgeCountB)-1){edge = minusVec(polygonA.vArr[edgeCountA],polygonA.vArr[0]);}
+				        else if (edgeIndex < edgeCountA-1) {
+				            edge = minusVec(polygonA.vArr[edgeIndex+1],polygonA.vArr[edgeIndex]);
+				        } else {
+				            edge = minusVec(polygonA.vArr[(edgeIndex-edgeCountA) +1],polygonA.vArr[edgeIndex-edgeCountA]);
+				        }
+
+				        // ===== 1. Find if the polygons are currently intersecting =====
+
+				        // Find the axis perpendicular to the current edge
+				        Vec2 axis = mkvec(-edge.y, edge.x);
+				        axis = Normalize(axis);
+
+				        // Find the projection of the polygon on the current axis
+Vec2 maxminA = mkvec(0,0);Vec2 maxminB = mkvec(0,0);
+				         maxminA = ProjectPolygon(axis, polygonA);
+				         maxminB = ProjectPolygon(axis, polygonB);
+
+				        // Check if the polygon projections are currentlty intersecting
+				        if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){result = false;}
+
+
+				    }
+
+				    return result;
+				}
+
+bool collisionObj(Obj *oMain,Obj *oSec){
+double minDist;
+
+	Vec2 vla,vlb;
+	for(int j = 0;j<oSec->vArr_len;j++){
+		int n = oMain->vArr_len;
+		int count = 0;
+	double x = oSec->vArr[j].x,y = oSec->vArr[j].y;
+		for(int i = 0;i<n;i++){
+			Vec2 a = oMain->vArr[i],b = oMain->vArr[i+1];
+			if(y<a.y != y<b.y && x < (b.x-a.x)*(y-a.y)/(b.y-a.y)+x){count+=1;}}
+		Vec2 a = oMain->vArr[0],b = oMain->vArr[n];
+		if(y<a.y != y<b.y && x < (b.x-a.x)*(y-a.y)/(b.y-a.y)+x){count+=1;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		double Tdist;
+	if(count % 2 != 0 ){
+		Vec2 a = oMain->vArr[0],b = oMain->vArr[n];
+		minDist = dist(intersectionPoint(a,b,oSec->vArr[j],oSec->cen),oSec->cen);
+			vla=a;vlb=b;
+
+		for(int i2 = 0;i2<n-1;i2++){
+				Vec2 a = oMain->vArr[i2],b = oMain->vArr[i2+1];
+			if(Tdist = dist(intersectionPoint(a,b,oSec->vArr[j],oSec->cen),oSec->cen)<minDist){
+				minDist = Tdist;
+				vla=a;vlb=b;}}
+				Vec2 po;
+				double dx = vlb.x - vla.x;
+				double dy = vlb.y - vla.y;
+				if(dist(oSec->cen,mkvec(-dy,dx)) > dist(oSec->cen,mkvec(dy,-dx))){
+						po = mkvec(dy,-dx);}else{po = mkvec(-dy,dx);}
+						po = Normalize(po);
+						Vec2 Collv	= intersectionPoint(vla,vlb,oSec->vArr[j],oSec->cen);
+					Vec2 r1 = {Collv.x-oMain->cen.x,Collv.y-oMain->cen.y};
+					Vec2 r2 = {Collv.x-oSec->cen.x,Collv.y-oSec->cen.y};
+					Vec2 v = minusVec(addVec(oMain->v,crossd2(r1,oMain->w)),addVec(oSec->v,crossd2(r2,oSec->w)));
+				double j = ((-1)*(dot(v,po)))/(1/oMain->m+1/oSec->m+(cross(r1,po)*cross(r1,po))/oMain->I+(cross(r2,po)*cross(r2,po))/oSec->I);
+				oMain->v = addVec(oMain->v,mulv(po,j));
+				oMain->w = oMain->w + cross(r1,mulv(po,j))/oMain->I;
+				oSec->v = addVec(oSec->v,mulv(po,j));
+				oSec->w = oSec->w + cross(r2,mulv(po,j))/oSec->I;
+				return true;}
+
+
+			}
+
+				return false;
+}
