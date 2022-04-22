@@ -93,7 +93,7 @@ void clear_Renderer();
 void eventLoop(); //events like input
 
 void SDL_setup();
-
+bool PolygonCollision(Obj polygonA, Obj polygonB);
 //small main functions but noone can understand how it works
 int main(){
 	SDL_setup();
@@ -355,8 +355,10 @@ void simulation_Step(double dT){
 		moveObj(&oT[i],dT);
 		oT[i].cen.x +=oT[i].v.x;
 		oT[i].cen.y +=oT[i].v.y;
+		for(int j = 0;j<oT_S;j++){if(j==i){continue;}if(PolygonCollision(oT[i],oT[j])==true){SDL_SetRenderDrawColor(renderer,255,0,0,SDL_ALPHA_OPAQUE);}}
 		borderCheck2(&oT[i]);
-		draw2(oT[i]);}}
+		draw2(oT[i]);
+SDL_SetRenderDrawColor(renderer,255,255,255,SDL_ALPHA_OPAQUE);}}
 
 
 void clear_Renderer(){
@@ -397,3 +399,58 @@ void eventLoop(){
 				oT[oT_S] = mkObj(&pA[0],pAS,mass,v,w);
 				oT[oT_S].cen = cenObj(oT[oT_S]);oT[oT_S].I = objInertia(oT[oT_S]);
 				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}}
+
+Vec2 ProjectPolygon(Vec2 axis, Obj polygon ){
+	Vec2 maxmin = {0,0};
+	double dotProduct = dot(polygon.vArr[0],axis);
+	maxmin.y = dotProduct;
+	maxmin.x = dotProduct;
+	for(int i = 0; i < polygon.vArr_len; i++){
+		dotProduct = dot(axis,polygon.vArr[i]);
+		if(dotProduct < maxmin.y){
+			maxmin.y = dotProduct;
+		}else{
+			if(dotProduct > maxmin.x){
+			maxmin.x = dotProduct;}}}
+	return maxmin;}
+
+double IntervalDistance(double minA, double maxA, double minB, double maxB){
+	if(minA < minB){
+		return minB - maxA;
+	}else{
+		return minA - maxB;}}
+Vec2 Normalize(Vec2 v){
+	Vec2 normal = {v.x/magp(v),v.y/magp(v)};
+	return normal;
+}
+bool PolygonCollision(Obj polygonA, Obj polygonB){
+	int edgeCountA = polygonA.vArr_len;
+	int edgeCountB = polygonB.vArr_len;
+	Vec2 edge = {0,0};
+	
+	for(int edgeIndex = 0; edgeIndex < edgeCountA; edgeIndex++){
+		if(edgeIndex == edgeCountA-1){
+			edge = minusVec(polygonA.vArr[edgeIndex],polygonA.vArr[0]);}
+		else{
+			edge = minusVec(polygonA.vArr[edgeIndex +1],polygonA.vArr[edgeIndex]);}
+		Vec2 axis = mkvec(-edge.y, edge.x);
+		axis = Normalize(axis);
+		Vec2 maxminA = mkvec(0,0);Vec2 maxminB = mkvec(0,0);
+		maxminA = ProjectPolygon(axis, polygonA);
+		maxminB = ProjectPolygon(axis, polygonB);
+		if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){
+			return false;}}
+	for (int edgeIndex = 0; edgeIndex < edgeCountB; edgeIndex++){
+		if(edgeIndex == edgeCountB-1){
+			edge = minusVec(polygonB.vArr[edgeIndex],polygonB.vArr[0]);}
+		else{
+			edge = minusVec(polygonB.vArr[edgeIndex +1],polygonB.vArr[edgeIndex]);}
+		Vec2 axis = mkvec(-edge.y, edge.x);
+		axis = Normalize(axis);
+		Vec2 maxminA = mkvec(0,0);
+		Vec2 maxminB = mkvec(0,0);
+		maxminA = ProjectPolygon(axis, polygonA);
+		maxminB = ProjectPolygon(axis, polygonB);
+		if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){
+			return false;}}
+	return true;}
