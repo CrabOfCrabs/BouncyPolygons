@@ -52,7 +52,7 @@ int ms = 0;		//Step delay in ms
 	//Obj defaults//
 double mass = 100;
 Vec2 v = {100,200};
-double w = 0;	
+double w = 0;
 	//Colors//
 SDL_Color White = {255, 255, 255};
 
@@ -74,9 +74,9 @@ int screenW= SCREEN_WIDTH,screenH = SCREEN_HEIGHT;
 int objFocus_Index=0;//selected obj
 
 Obj oT[OBJECT_LIMIT];//Obj array
-int oT_S =0;		
+int oT_S =0;
 Vec2 pA[VERTEX_LIMIT];//Vertex Array for creating obj
-int pAS = 0;		
+int pAS = 0;
 
 int dT = 0;//Delta time of current step
 
@@ -87,7 +87,7 @@ int dT = 0;//Delta time of current step
 
 void swapp(Vec2 *p1,Vec2 *p2);// swap addreses of vectors
 	//making stuff//
-Vec2 mkvec(double x,double y);
+Vec2 mkVec(double x,double y);
 Obj mkObj(Vec2 *vArr,int vArrS,double mass,Vec2 v,double w);
 	//Simple math//
 Vec2 addVec(Vec2 p,Vec2 offs);Vec2 minusVec(Vec2 p,Vec2 offs);Vec2 mulv(Vec2 p,double u);// basic math
@@ -95,26 +95,23 @@ double dot(Vec2 p1 , Vec2 p2);double cross(Vec2 p1,Vec2 p2); //vector multiplica
 double magp(Vec2 p);double dist(Vec2 p1 , Vec2 p2); //two distance funcs
 Vec2 crossd(Vec2 p ,double d);Vec2 crossd2(Vec2 p ,double d); //angular v to linear v
 	//Complex calculations//
-double inpolx(Vec2 p1,Vec2 p2,double y);//interpolates p1 -> p2 with y variable
-double areaObj(Obj o);Vec2 cenObj(Obj o);//to calculate center object needs proper winding
-double objInertia(Obj o);
-bool pointInPolygon(Obj polygon,Vec2 v);
-bool linePointColl(Vec2 p1,Vec2 p2,Vec2 l1,Vec2 l2,Vec2 l3,Vec2 l4,Vec2 *po);
-bool get_line_intersection(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po);
+double interpolate_X(Vec2 p1,Vec2 p2,double y);//interpolates p1 -> p2 with y variable
+double polygon_Area(Obj o);Vec2 polygon_Center(Obj o);//to calculate center object needs proper winding
+double polygon_Inertia(Obj o);
 	//Collision Checks//
-void borderCheck2(Obj* o);
-bool PolygonCollision(Obj polygonA, Obj polygonB);
-bool DIAGS_Collision_physics(Obj *obj1,Obj *obj2);
+bool line_Collision(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po);
+void border_Collision(Obj* o);
+bool DIAGS_Collision(Obj *obj1,Obj *obj2);
 	//Movement//
-void moveVec(Vec2 *v,Vec2 offs);
-void moveObj(Obj *o,double dT);
-void offsetObj(Obj *o,Vec2 offs);
+void polygon_Move(Obj *o,double dT);
+void polygon_Offset(Obj *o,Vec2 offs);
+void vector_Offset(Vec2 *v,Vec2 offs);
 	//Rendering//
-void draw2(Obj o);
-void displayInt(double intT);
-void drawMode_Render();
+void draw_Obj(Obj o);
+void draw_Int(double intT);
+void draw_Blueprint();
 	//Main Processes//
-void SDL_setup();//setup for SDL related Stuff
+void SDL_Setup();//setup for SDL related Stuff
 void simulation_Step(double dT);
 void clear_Renderer();
 void event_Loop(); //events like input
@@ -124,7 +121,7 @@ void event_Loop(); //events like input
 //
 //small main functions but noone can understand how it works
 int main(){
-	SDL_setup();
+	SDL_Setup();
 	unsigned int lastTime = 0,currentTime;
 
 	//SDL_SetWindowResizable(window,true);
@@ -137,14 +134,14 @@ int main(){
 		dT = currentTime-lastTime;
 		lastTime = currentTime;
 		clear_Renderer();
-			
-		displayInt(tq1p);
-		
+
+		draw_Int(tq1p);
+
 		if(createMode == true){
-			drawMode_Render();}
-		
+			draw_Blueprint();}
+
 		simulation_Step(dT);
-		
+
 		SDL_RenderPresent(renderer);}
 
 	SDL_DestroyRenderer(renderer);
@@ -160,7 +157,7 @@ void swapp(Vec2 *p1,Vec2 *p2){
 	Vec2 tmp = *p1;*p1 = *p2;*p2 = tmp;
 	return;}
 
-Vec2 mkvec(double x,double y){
+Vec2 mkVec(double x,double y){
 	Vec2 v = {x,y};
 	return v;}
 
@@ -220,11 +217,11 @@ Vec2 mulv(Vec2 p,double u){
 	Vec2 pr = {p.x*u,p.y*u};
 	return pr;}
 
-double inpolx(Vec2 p1,Vec2 p2,double y){
+double interpolate_X(Vec2 p1,Vec2 p2,double y){
 	double x = p1.x + (p2.x - p1.x)*(y - p1.y)/(p2.y - p1.y);
 	return x;}
 
-double areaObj(Obj o){
+double polygon_Area(Obj o){
 	double area = 0;
 	for(int i = 1;i < o.vArr_len-1;i++){
 		Vec2 v1 = minusVec(o.vArr[i+1],o.vArr[0]);
@@ -232,7 +229,7 @@ double areaObj(Obj o){
 		area += cross(v1,v2)/2;}
 	return fabs(area);}
 
-Vec2 cenObj(Obj o){
+Vec2 polygon_Center(Obj o){
 	double Aarea = 0;
 	double cenx = 0,ceny = 0;
 	for(int i = 0,j=o.vArr_len-1;i < o.vArr_len;j=i++){
@@ -244,19 +241,19 @@ Vec2 cenObj(Obj o){
 	Vec2 retCen = {fabs(cenx/Aarea),fabs(ceny/Aarea)};
 	return retCen;}
 
-void moveVec(Vec2 *v,Vec2 offs){
+void vector_Offset(Vec2 *v,Vec2 offs){
 	v->x = offs.x;
 	v->y = offs.y;
 	return;}
 
-void offsetObj(Obj *o,Vec2 offs){
+void polygon_Offset(Obj *o,Vec2 offs){
 	for(int i = 0;i<o->vArr_len;i++){
-		moveVec(&o->vArr[i],addVec(o->vArr[i],offs));}
+		vector_Offset(&o->vArr[i],addVec(o->vArr[i],offs));}
 	o->cen = addVec(o->cen,offs);
 	return;}
 
 
-void moveObj(Obj *o,double dT){
+void polygon_Move(Obj *o,double dT){
 
 	for(int i = 0;i<o->vArr_len;i++){
 		Vec2 p = o->vArr[i];
@@ -271,74 +268,65 @@ Vec2 crossd2(Vec2 p ,double d){
 	Vec2 r = {-1*d*p.y,d*p.x};
 	return r;}
 
-void borderCheck2(Obj* o){
+void border_Collision(Obj* o){
 
 	for(int i = 0;i<o->vArr_len;i++){
 		Vec2 p = o->vArr[i];
 		double j=0;
 		double e = 1; //elasticity 1 = boing boing , 0 = BAM!!
 		Vec2 J ={0,0};
-                if(p.y > screenH){
-			offsetObj(o,mkvec(0,screenH-p.y));
-			Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
-
-			Vec2 v = addVec(o->v,crossd2(r,o->w));
-			Vec2 po = {0,-1}; //wall normal
-			j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I); // <- impulse on wall calculation
-                        J.y = -1*j;} //mult by surface normal
-		else if(p.y < 0){
-			offsetObj(o,mkvec(0,p.y*-1));
-			Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
-
-			Vec2 v = addVec(o->v,crossd2(r,o->w));
-			Vec2 po = {0,1};
-			j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
-                        J.y = 1*j;}
-		else if(p.x >  screenW){
-			offsetObj(o,mkvec(screenW-p.x,0));
-			Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
-
-			Vec2 v = addVec(o->v,crossd2(r,o->w));
-			Vec2 po = {-1,0};
-			j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
-                        J.x = -1*j;}
-		else if(p.x < 0){
-			offsetObj(o,mkvec(p.x*-1,0));
-			Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
-
-			Vec2 v = addVec(o->v,crossd2(r,o->w));
-			Vec2 po = {1,0};
-                	j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
-                        J.x = 1*j;}
-		else{continue;} //does it skip?
+		Vec2 po = {0,0};
+                if(p.y > screenH)
+		{
+			polygon_Offset(o,mkVec(0,screenH-p.y));
+			po.y = -1; //wall normal
+		}else if(p.y < 0){
+			polygon_Offset(o,mkVec(0,p.y*-1));
+			po.y = 1;
+		}else if(p.x >  screenW){
+			polygon_Offset(o,mkVec(screenW-p.x,0));
+			po.x = -1;
+		}else if(p.x < 0){
+			polygon_Offset(o,mkVec(p.x*-1,0));
+			po.x = 1;
+		}else{continue;} //does it skip?
 
 		Vec2 r = {p.x-o->cen.x,p.y-o->cen.y};
+		Vec2 v = addVec(o->v,crossd2(r,o->w));
+		j = ((-1-e)*(dot(v,po)))/(1/o->m+(cross(r,po)*cross(r,po))/o->I);
 
-		o->v = addVec(o->v,mkvec(J.x/o->m,J.y/o->m));
-		o->w = o->w + cross(r,J)/o->I;break;}
+		o->v = addVec(o->v,mkVec(po.x*j/o->m,po.y*j/o->m));
+		o->w = o->w + cross(r,mulv(po,j))/o->I;break;}
 	return;}
 
-double objInertia(Obj o){ //some Inertia bongle dongle doongle moong
-	double density = o.m/areaObj(o);
-	double moi = 0;int i;
-	for(i = 1;i< o.vArr_len-1;i++){
-		Vec2 p1 = o.vArr[0], p2 = o.vArr[i], p3 = o.vArr[i+1];
-		double w = dist(p1, p2);
-		double w1 = fabs(dot(minusVec(p1, p2), minusVec(p3, p2)) / w);
-		double w2 = fabs(w - w1);
-		double signedTriArea = cross(minusVec(p3, p1), minusVec(p2, p1)) / 2;
-		double h = 2 * fabs(signedTriArea) / w;
-		Vec2 p4 = addVec(p2, mulv(minusVec(p1, p2), w1 / w));
-		Vec2 cm1 = {(p2.x + p3.x + p4.x) / 3,(p2.y + p3.y + p4.y) / 3};
-		Vec2 cm2 = {(p1.x + p3.x + p4.x) / 3,(p1.y + p3.y + p4.y) / 3};
-		double I1 = density * w1 * h * ((h * h / 4) + (w1 * w1 / 12));
-		double I2 = density * w2 * h * ((h * h / 4) + (w2 * w2 / 12));
-		double m1 = 0.5 * w1 * h * density;
-		double m2 = 0.5 * w2 * h * density;
-		double I1cm = I1 - (m1 * pow(dist(cm1, p3), 2));
-		double I2cm = I2 - (m2 * pow(dist(cm2, p3), 2));
-		double momentOfInertiaPart1 = I1cm + (m1 * pow(magp(cm1), 2));
-		double momentOfInertiaPart2 = I2cm + (m2 * pow(magp(cm2), 2));
+double polygon_Inertia(Obj o){ //some Inertia bongle dongle doongle moong
+	double density = o.m/polygon_Area(o),
+	       moi = 0;
+	int i;
+	for(i = 1;i<o.vArr_len-1;i++){
+		Vec2 	p1 = o.vArr[0],
+			p2 = o.vArr[i],
+		     	p3 = o.vArr[i+1];
+		
+		double 	w = dist(p1,p2),
+		       	w1 = fabs(dot(minusVec(p1,p2),minusVec(p3,p2))/w),
+		       	w2 = fabs(w-w1),
+		       	signedTriArea = cross(minusVec(p3,p1),minusVec(p2,p1))/2,
+		       	h = 2*fabs(signedTriArea)/w;
+		
+		Vec2 	p4 = addVec(p2,mulv(minusVec(p1,p2),w1/w)),
+			cm1 = {(p2.x+p3.x+p4.x)/3,(p2.y+p3.y+p4.y)/3},
+		     	cm2 = {(p1.x+p3.x+p4.x)/3,(p1.y+p3.y+p4.y)/3};
+		
+		double 	I1 = density*w1*h*((h*h/4)+(w1*w1/12)),
+			I2 = density*w2*h*((h*h/4)+(w2*w2/12)),
+			m1 = 0.5*w1*h*density,
+			m2 = 0.5*w2*h*density,
+			I1cm = I1-(m1*pow(dist(cm1,p3),2)),
+			I2cm = I2-(m2*pow(dist(cm2,p3),2)),
+			momentOfInertiaPart1 = I1cm+(m1*pow(magp(cm1),2)),
+			momentOfInertiaPart2 = I2cm+(m2*pow(magp(cm2),2));
+		
 		if(cross(minusVec(p1, p3), minusVec(p4, p3)) > 0){
 			moi += momentOfInertiaPart1;}
 		else{moi -= momentOfInertiaPart1;}
@@ -348,7 +336,7 @@ double objInertia(Obj o){ //some Inertia bongle dongle doongle moong
 	return fabs(moi);}
 
 
-void displayInt(double intT){
+void draw_Int(double intT){
 	char textString[1000];
 	SDL_Rect Message_rect;
 	Message_rect.x = 0;
@@ -360,7 +348,7 @@ void displayInt(double intT){
 	Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
 	SDL_RenderCopy(renderer, Message, NULL, &Message_rect);}
 
-void draw2(Obj o){
+void draw_Obj(Obj o){
 	int i;
 	for(i = 0;i<o.vArr_len-1;i++){
 		SDL_RenderDrawLine(renderer, o.vArr[i].x, o.vArr[i].y,o.vArr[i+1].x,o.vArr[i+1].y);}
@@ -368,7 +356,7 @@ void draw2(Obj o){
 	return;}
 
 
-void drawMode_Render(){
+void draw_Blueprint(){
 	SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
 	for(int i = 0;i<pAS-1;i++){
 		SDL_RenderDrawLine(renderer, pA[i].x, pA[i].y,pA[i+1].x,pA[i+1].y);}
@@ -383,10 +371,10 @@ void drawMode_Render(){
 
 void simulation_Step(double dT){double vsum = 0;
 	for(int i = 0;i<oT_S;i++){
-		moveObj(&oT[i],dT);
-		for(int j = 0;j<oT_S;j++){if(j==i){continue;}else{DIAGS_Collision_physics(&oT[i],&oT[j]);}}
-		borderCheck2(&oT[i]);
-		draw2(oT[i]);
+		polygon_Move(&oT[i],dT);
+		for(int j = 0;j<oT_S;j++){if(j==i){continue;}else{DIAGS_Collision(&oT[i],&oT[j]);}}
+		border_Collision(&oT[i]);
+		draw_Obj(oT[i]);
 		vsum += fabs(oT[i].v.x);
 		vsum += fabs(oT[i].v.y);
 	SDL_SetRenderDrawColor(renderer,255,255,255,SDL_ALPHA_OPAQUE);}
@@ -400,9 +388,9 @@ void clear_Renderer(){
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 	SDL_DestroyTexture(Message);
 	SDL_FreeSurface(surfaceMessage);
-	return;}	
+	return;}
 
-void SDL_setup(){
+void SDL_Setup(){
 	if(SDL_Init(SDL_INIT_VIDEO) < 0){printf("SDL could not be initialized!\n""SDL_Error: %s\n", SDL_GetError());exit(EXIT_FAILURE);}
 	#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
 		if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0")){printf("SDL can not disable compositor bypass!\n");exit(EXIT_FAILURE);}
@@ -426,14 +414,14 @@ void event_Loop(){
 		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)){
 			if(createMode == false){
 				createMode = true;
-				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}
+				pA[pAS] = mkVec(mousex,mousey);pAS+=1;}
 			else if(createMode == true){
-				pA[pAS] = mkvec(mousex,mousey);pAS+=1;}}
+				pA[pAS] = mkVec(mousex,mousey);pAS+=1;}}
 		if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button ==SDL_BUTTON_RIGHT){
 			if(createMode == true){
 				createMode = false;
 				oT[oT_S] = mkObj(&pA[0],pAS,mass,v,w);
-				oT[oT_S].cen = cenObj(oT[oT_S]);oT[oT_S].I = objInertia(oT[oT_S]);
+				oT[oT_S].cen = polygon_Center(oT[oT_S]);oT[oT_S].I = polygon_Inertia(oT[oT_S]);
 				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}
 	return;}
 
@@ -461,12 +449,12 @@ Vec2 Normalize(Vec2 v){
 	Vec2 normal = {v.x/magp(v),v.y/magp(v)};
 	return normal;}
 
-double PointLine_dist(Vec2 a,Vec2 b,Vec2 c){
+double VectorLine_dist(Vec2 a,Vec2 b,Vec2 c){
 	double dist = fabs((c.x-a.x)*(-b.y+a.y)+(c.y-a.y)*(b.x-a.x))/sqrt(pow((-b.y+a.y),2)+pow((b.x-a.x),2));
 	return dist;}
 
 
-bool get_line_intersection(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po){
+bool line_Collision(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po){
 	Vec2 s1 = {p2.x - p1.x, p2.y - p1.y},
 	     s2 = {p4.x - p3.x, p4.y - p3.y};
 	double s, t;
@@ -478,20 +466,20 @@ bool get_line_intersection(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po){
 		return true;}
 	return false;}
 
-
+/*
 bool PolygonCollision(Obj polygonA, Obj polygonB){
 	int edgeCountA = polygonA.vArr_len;
 	int edgeCountB = polygonB.vArr_len;
 	Vec2 edge = {0,0};
-	
+
 	for(int edgeIndex = 0; edgeIndex < edgeCountA; edgeIndex++){
 		if(edgeIndex == edgeCountA-1){
 			edge = minusVec(polygonA.vArr[edgeIndex],polygonA.vArr[0]);}
 		else{
 			edge = minusVec(polygonA.vArr[edgeIndex +1],polygonA.vArr[edgeIndex]);}
-		Vec2 axis = mkvec(-edge.y, edge.x);
+		Vec2 axis = mkVec(-edge.y, edge.x);
 		axis = Normalize(axis);
-		Vec2 maxminA = mkvec(0,0);Vec2 maxminB = mkvec(0,0);
+		Vec2 maxminA = mkVec(0,0);Vec2 maxminB = mkVec(0,0);
 		maxminA = ProjectPolygon(axis, polygonA);
 		maxminB = ProjectPolygon(axis, polygonB);
 		if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){
@@ -501,17 +489,17 @@ bool PolygonCollision(Obj polygonA, Obj polygonB){
 			edge = minusVec(polygonB.vArr[edgeIndex],polygonB.vArr[0]);}
 		else{
 			edge = minusVec(polygonB.vArr[edgeIndex +1],polygonB.vArr[edgeIndex]);}
-		Vec2 axis = mkvec(-edge.y, edge.x);
+		Vec2 axis = mkVec(-edge.y, edge.x);
 		axis = Normalize(axis);
-		Vec2 maxminA = mkvec(0,0);
-		Vec2 maxminB = mkvec(0,0);
+		Vec2 maxminA = mkVec(0,0);
+		Vec2 maxminB = mkVec(0,0);
 		maxminA = ProjectPolygon(axis, polygonA);
 		maxminB = ProjectPolygon(axis, polygonB);
 		if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){
 			return false;}}
 	return true;}
-
-bool DIAGS_Collision_physics(Obj *obj1,Obj *obj2){
+*/
+bool DIAGS_Collision(Obj *obj1,Obj *obj2){
 	Obj *o1 = obj1;
 	Obj *o2 = obj2;
 	Vec2 col;
@@ -535,15 +523,15 @@ bool DIAGS_Collision_physics(Obj *obj1,Obj *obj2){
 					offset.x += (1 - t1)*(le1.x - ls1.x);
 					offset.y += (1 - t1)*(le1.y - ls1.y);
 
-				if(get_line_intersection(ls2,le2,ls1,le1,&col)==true){	
+				if(line_Collision(ls2,le2,ls1,le1,&col)==true){
 					double dx = ls2.x - le2.x;
 					double dy = ls2.y - le2.y;
 					Vec2 po;
-					if(dist(o2->cen,addVec(col,mkvec(-dy,dx))) > dist(o2->cen,addVec(col,mkvec(dy,-dx)))){
-						po = mkvec(dy,-dx);}
+					if(dist(o2->cen,addVec(col,mkVec(-dy,dx))) > dist(o2->cen,addVec(col,mkVec(dy,-dx)))){
+						po = mkVec(dy,-dx);}
 					else{
-						po = mkvec(-dy,dx);}
-						
+						po = mkVec(-dy,dx);}
+
 					po = Normalize(po);
 					Vec2 r1 = {col.x-o1->cen.x,col.y-o1->cen.y};
 					Vec2 r2 = {col.x-o2->cen.x,col.y-o2->cen.y};
@@ -553,18 +541,9 @@ bool DIAGS_Collision_physics(Obj *obj1,Obj *obj2){
 					o1->w = o1->w + cross(r1,mulv(po,j))/o1->I;
 					o2->v = minusVec(o2->v,mulv(mulv(po,j),1/o2->m));
 					o2->w = o2->w - cross(r2,mulv(po,j))/o2->I;}}}
-			offsetObj(o1,mulv(offset,(polygon == 0 ? -1 : +1)));}
-		return false;}}
-
-
-bool pointInPolygon(Obj polygon,Vec2 v){
-	int   i, j=polygon.vArr_len-1 ;
-	bool  oddNodes=false;
-	for (i=0; i<polygon.vArr_len; i++){
-		if (polygon.vArr[i].y<v.y && polygon.vArr[j].y>=v.y || polygon.vArr[j].y<v.y && polygon.vArr[i].y>=v.y){
-			if(polygon.vArr[i].x+(v.y-polygon.vArr[i].y)/(polygon.vArr[j].y-polygon.vArr[i].y)*(polygon.vArr[j].x-polygon.vArr[i].x)<v.x){
-				oddNodes=!oddNodes;}}j=i;}
-	return oddNodes;}
+			polygon_Offset(o1,mulv(offset,(polygon == 0 ? -1 : +1)));}
+		//return false;
+	}return false;}
 
 
 
