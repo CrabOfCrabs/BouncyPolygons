@@ -8,13 +8,8 @@
 
 typedef struct vector2d{
 	double x;
-	double y;}Vec2;
-
-typedef struct triangle{
-	Vec2 *p1;
-	Vec2 *p2;
-	Vec2 *p3;
-}Tri;
+	double y;
+}Vec2;
 
 typedef struct rigid_object{
 	Vec2 *vArr;
@@ -48,7 +43,7 @@ typedef struct rigid_object{
 #define VERTEX_LIMIT	1000
 #define OBJECT_LIMIT    100
 
-int ms = 0;		//Step delay in ms
+int ms = 10;		//Step delay in ms
 	//Obj defaults//
 double mass = 100;
 Vec2 v = {100,200};
@@ -98,7 +93,8 @@ Vec2 crossd(Vec2 p ,double d);Vec2 crossd2(Vec2 p ,double d); //angular v to lin
 double interpolate_X(Vec2 p1,Vec2 p2,double y);//interpolates p1 -> p2 with y variable
 double polygon_Area(Obj o);Vec2 polygon_Center(Obj o);//to calculate center object needs proper winding
 double polygon_Inertia(Obj o);
-	//Collision Checks//
+double polygon_KineticEnergy(Obj o);
+    //Collision Checks//
 bool line_Collision(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po);
 void border_Collision(Obj* o);
 bool DIAGS_Collision(Obj *obj1,Obj *obj2);
@@ -113,6 +109,7 @@ void draw_Blueprint();
 	//Main Processes//
 void SDL_Setup();//setup for SDL related Stuff
 void simulation_Step(double dT);
+void draw_Step();
 void clear_Renderer();
 void event_Loop(); //events like input
 
@@ -126,23 +123,17 @@ int main(){
 
 	//SDL_SetWindowResizable(window,true);
 	while(!quit){
-		event_Loop();
 		SDL_Delay(ms);
-		SDL_GetWindowSize(window,&screenW,&screenH);
-		SDL_GetMouseState(&mousex,&mousey);
 		currentTime = SDL_GetTicks64();
-		dT = currentTime-lastTime;
-		lastTime = currentTime;
-		clear_Renderer();
+        while(lastTime < currentTime){
+		    event_Loop();
+	    	SDL_GetWindowSize(window,&screenW,&screenH);
+	    	SDL_GetMouseState(&mousex,&mousey);
+            dT = currentTime-lastTime;
+		    lastTime = currentTime;
 
-		draw_Int(tq1p);
-
-		if(createMode == true){
-			draw_Blueprint();}
-
-		simulation_Step(dT);
-
-		SDL_RenderPresent(renderer);}
+		    simulation_Step(dT);
+            draw_Step();}}
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -186,13 +177,13 @@ double dot(Vec2 p1 , Vec2 p2){
 	double prod = p1.x * p2.x + p1.y * p2.y;
 	return prod;}
 
-Vec2 addVec(Vec2 p,Vec2 offs){
+inline Vec2 addVec(Vec2 p,Vec2 offs){
 	Vec2 v;
 	v.x =p.x+ offs.x;
 	v.y =p.y+ offs.y;
 	return v;}
 
-Vec2 minusVec(Vec2 p,Vec2 offs){
+inline Vec2 minusVec(Vec2 p,Vec2 offs){
 	Vec2 v;
 	v.x =p.x- offs.x;
 	v.y =p.y- offs.y;
@@ -276,8 +267,7 @@ void border_Collision(Obj* o){
 		double e = 1; //elasticity 1 = boing boing , 0 = BAM!!
 		Vec2 J ={0,0};
 		Vec2 po = {0,0};
-                if(p.y > screenH)
-		{
+                if(p.y > screenH){
 			polygon_Offset(o,mkVec(0,screenH-p.y));
 			po.y = -1; //wall normal
 		}else if(p.y < 0){
@@ -368,18 +358,34 @@ void draw_Blueprint(){
 
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 	return;}
-
-void simulation_Step(double dT){double vsum = 0;
+double polygon_KineticEnergy(Obj o){
+    double vx =o.v.x,vy =o.v.y,m =o.m,w =o.w,I =o.I;
+    return 0.5*m*(vx*vx) + 0.5*m*(vy*vy) + 0.5*I*(w*w);
+}
+void simulation_Step(double dT){
 	for(int i = 0;i<oT_S;i++){
-		polygon_Move(&oT[i],dT);
 		for(int j = 0;j<oT_S;j++){if(j==i){continue;}else{DIAGS_Collision(&oT[i],&oT[j]);}}
-		border_Collision(&oT[i]);
-		draw_Obj(oT[i]);
-		vsum += fabs(oT[i].v.x);
-		vsum += fabs(oT[i].v.y);
-	SDL_SetRenderDrawColor(renderer,255,255,255,SDL_ALPHA_OPAQUE);}
-	tq1p = vsum;
+		border_Collision(&oT[i]);	
+		polygon_Move(&oT[i],dT);}
+        
 	return;}
+
+void draw_Step(){
+    clear_Renderer();
+
+    double vsum = 0;
+    for(int i = 0;i<oT_S;i++){
+        draw_Obj(oT[i]);
+        vsum += polygon_KineticEnergy(oT[i]);
+	    SDL_SetRenderDrawColor(renderer,255,255,255,SDL_ALPHA_OPAQUE);}
+    
+    draw_Int(vsum);
+
+    if(createMode == true){
+        draw_Blueprint();}
+    
+    SDL_RenderPresent(renderer);
+    return;}
 
 
 void clear_Renderer(){
@@ -425,34 +431,9 @@ void event_Loop(){
 				memset(pA, 0, 1000);pAS=0;oT_S+=1;}}}
 	return;}
 
-Vec2 ProjectPolygon(Vec2 axis, Obj polygon ){
-	Vec2 maxmin = {0,0};
-	double dotProduct = dot(polygon.vArr[0],axis);
-	maxmin.y = dotProduct;
-	maxmin.x = dotProduct;
-	for(int i = 0; i < polygon.vArr_len; i++){
-		dotProduct = dot(axis,polygon.vArr[i]);
-		if(dotProduct < maxmin.y){
-			maxmin.y = dotProduct;
-		}else{
-			if(dotProduct > maxmin.x){
-			maxmin.x = dotProduct;}}}
-	return maxmin;}
-
-double IntervalDistance(double minA, double maxA, double minB, double maxB){
-	if(minA < minB){
-		return minB - maxA;
-	}else{
-		return minA - maxB;}}
-
-Vec2 Normalize(Vec2 v){
+Vec2 normalize(Vec2 v){
 	Vec2 normal = {v.x/magp(v),v.y/magp(v)};
 	return normal;}
-
-double VectorLine_dist(Vec2 a,Vec2 b,Vec2 c){
-	double dist = fabs((c.x-a.x)*(-b.y+a.y)+(c.y-a.y)*(b.x-a.x))/sqrt(pow((-b.y+a.y),2)+pow((b.x-a.x),2));
-	return dist;}
-
 
 bool line_Collision(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po){
 	Vec2 s1 = {p2.x - p1.x, p2.y - p1.y},
@@ -466,39 +447,6 @@ bool line_Collision(Vec2 p1,Vec2 p2,Vec2 p3,Vec2 p4,Vec2* po){
 		return true;}
 	return false;}
 
-/*
-bool PolygonCollision(Obj polygonA, Obj polygonB){
-	int edgeCountA = polygonA.vArr_len;
-	int edgeCountB = polygonB.vArr_len;
-	Vec2 edge = {0,0};
-
-	for(int edgeIndex = 0; edgeIndex < edgeCountA; edgeIndex++){
-		if(edgeIndex == edgeCountA-1){
-			edge = minusVec(polygonA.vArr[edgeIndex],polygonA.vArr[0]);}
-		else{
-			edge = minusVec(polygonA.vArr[edgeIndex +1],polygonA.vArr[edgeIndex]);}
-		Vec2 axis = mkVec(-edge.y, edge.x);
-		axis = Normalize(axis);
-		Vec2 maxminA = mkVec(0,0);Vec2 maxminB = mkVec(0,0);
-		maxminA = ProjectPolygon(axis, polygonA);
-		maxminB = ProjectPolygon(axis, polygonB);
-		if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){
-			return false;}}
-	for (int edgeIndex = 0; edgeIndex < edgeCountB; edgeIndex++){
-		if(edgeIndex == edgeCountB-1){
-			edge = minusVec(polygonB.vArr[edgeIndex],polygonB.vArr[0]);}
-		else{
-			edge = minusVec(polygonB.vArr[edgeIndex +1],polygonB.vArr[edgeIndex]);}
-		Vec2 axis = mkVec(-edge.y, edge.x);
-		axis = Normalize(axis);
-		Vec2 maxminA = mkVec(0,0);
-		Vec2 maxminB = mkVec(0,0);
-		maxminA = ProjectPolygon(axis, polygonA);
-		maxminB = ProjectPolygon(axis, polygonB);
-		if (IntervalDistance(maxminA.y, maxminA.x, maxminB.y, maxminB.x) > 0){
-			return false;}}
-	return true;}
-*/
 bool DIAGS_Collision(Obj *obj1,Obj *obj2){
 	Obj *o1 = obj1;
 	Obj *o2 = obj2;
@@ -532,19 +480,20 @@ bool DIAGS_Collision(Obj *obj1,Obj *obj2){
 					else{
 						po = mkVec(-dy,dx);}
 
-					po = Normalize(po);
+					po = normalize(po);
 					Vec2 r1 = {col.x-o1->cen.x,col.y-o1->cen.y};
 					Vec2 r2 = {col.x-o2->cen.x,col.y-o2->cen.y};
-					Vec2 v = minusVec(addVec(o1->v,crossd2(r1,o1->w)),minusVec(o2->v,crossd2(r2,o2->w)));
-					double j = ((-1.99)*(dot(v,po)))/(1/o1->m+1/o2->m+(cross(r1,po)*cross(r1,po))/o1->I+(cross(r2,po)*cross(r2,po))/o2->I);
+					Vec2 v = minusVec(addVec(o1->v,crossd2(r1,o1->w)),addVec(o2->v,crossd2(r2,o2->w)));
+					double j = ((-2)*(dot(v,po)))/(1/o1->m+1/o2->m+(cross(r1,po)*cross(r1,po))/o1->I+(cross(r2,po)*cross(r2,po))/o2->I);
 					o1->v = addVec(o1->v,mulv(mulv(po,j),1/o1->m));
 					o1->w = o1->w + cross(r1,mulv(po,j))/o1->I;
 					o2->v = minusVec(o2->v,mulv(mulv(po,j),1/o2->m));
 					o2->w = o2->w - cross(r2,mulv(po,j))/o2->I;}}}
-			polygon_Offset(o1,mulv(offset,(polygon == 0 ? -1 : +1)));}
-		//return false;
+            polygon_Offset(o1,mulv(offset,(polygon == 0 ? -1 : +1)));
+            }
+		return false;
 	}return false;}
-
+//concave shapes still a "BIG NO GO" and i don't know why :(
 
 
 
